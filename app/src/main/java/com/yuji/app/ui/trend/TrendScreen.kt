@@ -26,26 +26,34 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CompareArrows
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,6 +74,7 @@ import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalTrend
 import com.yuji.app.ui.theme.LocalYujiColors
 import com.yuji.app.ui.theme.YujiColors
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.util.Calendar
 
@@ -94,6 +103,8 @@ fun reasonLabel(reason: String): String = when (reason) {
     else -> "历史记录"
 }
 
+private val ROW_R = 20.dp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TrendScreen(nav: NavController) {
@@ -101,6 +112,7 @@ fun TrendScreen(nav: NavController) {
     val snapshots by c.repository.snapshots.collectAsStateWithLifecycle()
     val settings by c.settings.settings.collectAsStateWithLifecycle()
     val trend = LocalTrend.current
+    val scope = rememberCoroutineScope()
     var range by rememberSaveable { mutableStateOf(Range.M6) }
     var selecting by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf(listOf<Long>()) }
@@ -218,26 +230,64 @@ fun TrendScreen(nav: NavController) {
                 item(key = "h-$month") {
                     Text(month, style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.TextMuted, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
                 }
-                item(key = "m-$month") {
-                    YujiCard(padding = PaddingValues(vertical = 4.dp)) {
-                        list.forEach { s ->
-                            SnapshotRow(
-                                s = s,
-                                previous = previousById[s.id],
-                                selecting = selecting,
-                                selected = s.id in selected,
-                                onClick = {
-                                    if (selecting) {
-                                        selected = when {
-                                            s.id in selected -> selected - s.id
-                                            selected.size < 2 -> selected + s.id
-                                            else -> listOf(selected.last(), s.id)
-                                        }
-                                    } else {
-                                        nav.navigate(Routes.snapshot(s.id))
+                list.forEachIndexed { i, s ->
+                    item(key = s.id) {
+                        val isFirst = i == 0
+                        val isLast = i == list.size - 1
+                        val shape = when {
+                            isFirst && isLast -> RoundedCornerShape(ROW_R)
+                            isFirst -> RoundedCornerShape(topStart = ROW_R, topEnd = ROW_R)
+                            isLast -> RoundedCornerShape(bottomStart = ROW_R, bottomEnd = ROW_R)
+                            else -> RectangleShape
+                        }
+                        SwipeToDismissBox(
+                            state = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.EndToStart && !selecting) {
+                                        scope.launch { c.repository.deleteSnapshot(s.id) }
                                     }
-                                },
-                            )
+                                    false
+                                }
+                            ),
+                            enableDismissFromStartToEnd = false,
+                            enableDismissFromEndToStart = !selecting,
+                            backgroundContent = {
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(LocalYujiColors.current.Coral.copy(alpha = 0.12f), shape)
+                                        .padding(end = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd,
+                                ) {
+                                    Icon(Icons.Rounded.DeleteOutline, contentDescription = "删除", tint = LocalYujiColors.current.Coral)
+                                }
+                            },
+                        ) {
+                            Surface(color = LocalYujiColors.current.Card, shape = shape) {
+                                Column {
+                                    if (!isFirst) HorizontalDivider(
+                                        Modifier.padding(horizontal = 16.dp),
+                                        color = LocalYujiColors.current.Outline.copy(alpha = 0.5f),
+                                    )
+                                    SnapshotRow(
+                                        s = s,
+                                        previous = previousById[s.id],
+                                        selecting = selecting,
+                                        selected = s.id in selected,
+                                        onClick = {
+                                            if (selecting) {
+                                                selected = when {
+                                                    s.id in selected -> selected - s.id
+                                                    selected.size < 2 -> selected + s.id
+                                                    else -> listOf(selected.last(), s.id)
+                                                }
+                                            } else {
+                                                nav.navigate(Routes.snapshot(s.id))
+                                            }
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }

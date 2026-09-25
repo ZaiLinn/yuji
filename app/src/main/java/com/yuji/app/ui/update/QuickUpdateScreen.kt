@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -82,6 +83,7 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
     }
     var overdueOnly by remember { mutableStateOf(overdueOnlyInitially) }
     var saving by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     val byId = portfolio.accounts.associateBy { it.account.id }
     val visible = order.mapNotNull { byId[it] }
@@ -127,6 +129,7 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
         },
     ) { padding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.padding(padding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -185,6 +188,8 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
                                         if (fs.isFocused) {
                                             val cur = inputs[a.id] ?: return@onFocusChanged
                                             inputs[a.id] = cur.copy(selection = TextRange(cur.text.length))
+                                            val idx = visible.indexOfFirst { it.account.id == a.id }
+                                            if (idx >= 0) scope.launch { listState.animateScrollToItem(idx + 1) }
                                         }
                                     }
                                     .fillMaxWidth()

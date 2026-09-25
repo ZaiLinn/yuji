@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +36,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -256,8 +261,11 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
 
 @Composable
 fun BalanceDialog(initial: BigDecimal, currency: String, onDismiss: () -> Unit, onSave: (BigDecimal) -> Unit) {
-    var text by remember { mutableStateOf(Money.toInput(initial)) }
-    val value = Money.parse(text)
+    val inputStr = Money.toInput(initial)
+    var text by remember { mutableStateOf(TextFieldValue(inputStr, selection = TextRange(0, inputStr.length))) }
+    val value = Money.parse(text.text)
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = LocalYujiColors.current.CardHigh,
@@ -272,6 +280,7 @@ fun BalanceDialog(initial: BigDecimal, currency: String, onDismiss: () -> Unit, 
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 shape = RoundedCornerShape(14.dp),
                 textStyle = Amount.row,
+                modifier = Modifier.focusRequester(focusRequester),
             )
         },
         confirmButton = { TextButton(enabled = value != null, onClick = { onSave(value!!); onDismiss() }) { Text("保存") } },
