@@ -2,6 +2,7 @@ package com.yuji.app.ui.home
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -497,6 +498,7 @@ private fun flatten(groups: List<GroupValue>, collapsed: Set<Long>): List<HomeEn
 private val CARD = 20.dp
 
 /** Top of a group card; [closed] = no visible accounts below, so it rounds its bottom too. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GroupHeader(
     group: GroupValue,
