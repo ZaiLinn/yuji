@@ -63,6 +63,7 @@ import com.yuji.app.data.db.SnapshotReason
 import com.yuji.app.domain.Money
 import com.yuji.app.ui.Format
 import com.yuji.app.ui.components.ChartPoint
+import com.yuji.app.ui.components.ConfirmDialog
 import com.yuji.app.ui.components.CnyText
 import com.yuji.app.ui.components.DeltaText
 import com.yuji.app.ui.components.EmptyState
@@ -115,6 +116,7 @@ fun TrendScreen(nav: NavController) {
     val scope = rememberCoroutineScope()
     var range by rememberSaveable { mutableStateOf(Range.M6) }
     var selecting by rememberSaveable { mutableStateOf(false) }
+    var confirmDeleteId by remember { mutableStateOf<Long?>(null) }
     var selected by rememberSaveable { mutableStateOf(listOf<Long>()) }
     var pinchAccum by remember { mutableFloatStateOf(1f) }
 
@@ -244,7 +246,7 @@ fun TrendScreen(nav: NavController) {
                             state = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { value ->
                                     if (value == SwipeToDismissBoxValue.EndToStart && !selecting) {
-                                        scope.launch { c.repository.deleteSnapshot(s.id) }
+                                        confirmDeleteId = s.id
                                     }
                                     false
                                 }
@@ -292,6 +294,18 @@ fun TrendScreen(nav: NavController) {
                     }
                 }
             }
+        }
+
+        confirmDeleteId?.let { id ->
+            val snap = snapshots.find { it.id == id }
+            ConfirmDialog(
+                title = "删除快照？",
+                message = if (snap != null) "将删除 ${Format.monthDay(snap.createdAt)} ${Format.time(snap.createdAt)} 的快照，此操作不可撤销。" else "此操作不可撤销。",
+                confirm = "删除",
+                destructive = true,
+                onConfirm = { scope.launch { c.repository.deleteSnapshot(id) } },
+                onDismiss = { confirmDeleteId = null },
+            )
         }
 
         if (selecting && selected.size == 2) {

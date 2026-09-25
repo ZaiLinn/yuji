@@ -87,6 +87,7 @@ import com.yuji.app.ui.account.BalanceDialog
 import com.yuji.app.ui.components.AccountIcon
 import com.yuji.app.ui.components.Banner
 import com.yuji.app.ui.components.ChartPoint
+import com.yuji.app.ui.components.ConfirmDialog
 import com.yuji.app.ui.components.CnyText
 import com.yuji.app.ui.components.DeltaChip
 import com.yuji.app.ui.components.EmptyState
@@ -124,6 +125,7 @@ fun HomeScreen(nav: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
     var quickUpdateId by remember { mutableStateOf<Long?>(null) }
+    var confirmDeleteAccountId by remember { mutableStateOf<Long?>(null) }
     val haptic = LocalHapticFeedback.current
 
     // Group headers and account rows as one flat list, so any account can be dragged
@@ -294,6 +296,7 @@ fun HomeScreen(nav: NavController) {
                             v = v, now = now, first = false, last = false, dragging = false,
                             onOpen = { nav.navigate(Routes.account(it)) },
                             onQuickUpdate = { quickUpdateId = it },
+                            onDelete = { confirmDeleteAccountId = it },
                             handle = Modifier,
                         )
                     }
@@ -326,6 +329,7 @@ fun HomeScreen(nav: NavController) {
                                 dragging = isDragging,
                                 onOpen = { nav.navigate(Routes.account(it)) },
                                 onQuickUpdate = { quickUpdateId = it },
+                                onDelete = { confirmDeleteAccountId = it },
                                 handle = Modifier.longPressDraggableHandle(
                                     onDragStarted = {
                                         dragging = true
@@ -377,6 +381,17 @@ fun HomeScreen(nav: NavController) {
                 onSave = { value -> scope.launch { c.repository.confirmBalances(mapOf(id to value)) } },
             )
         }
+    }
+    confirmDeleteAccountId?.let { id ->
+        val name = portfolio.account(id)?.account?.name ?: "该账户"
+        ConfirmDialog(
+            title = "删除「$name」？",
+            message = "账户和它的余额历史会被删除，已有的资产快照不受影响。",
+            confirm = "删除",
+            destructive = true,
+            onConfirm = { scope.launch { c.repository.deleteAccount(id) } },
+            onDismiss = { confirmDeleteAccountId = null },
+        )
     }
 }
 
@@ -614,6 +629,7 @@ private fun AccountRow(
     dragging: Boolean,
     onOpen: (Long) -> Unit,
     onQuickUpdate: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
     handle: Modifier,
 ) {
     val a = v.account
@@ -627,25 +643,35 @@ private fun AccountRow(
 
     val swipeState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) onQuickUpdate(a.id)
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> onQuickUpdate(a.id)
+                SwipeToDismissBoxValue.StartToEnd -> onDelete(a.id)
+                else -> Unit
+            }
             false
         }
     )
 
     SwipeToDismissBox(
         state = swipeState,
-        enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = true,
+        enableDismissFromStartToEnd = !dragging,
+        enableDismissFromEndToStart = !dragging,
         gesturesEnabled = !dragging,
         backgroundContent = {
+            val isDelete = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val bgColor = if (isDelete) LocalYujiColors.current.Coral.copy(alpha = 0.14f)
+                          else LocalYujiColors.current.Mint.copy(alpha = 0.14f)
             Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(LocalYujiColors.current.Mint.copy(alpha = 0.14f), shape)
-                    .padding(end = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
+                Modifier.fillMaxSize().background(bgColor, shape),
+                contentAlignment = if (isDelete) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
-                Icon(Icons.Rounded.EditNote, contentDescription = "更新余额", tint = LocalYujiColors.current.Mint)
+                if (isDelete) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = "删除账户",
+                        tint = LocalYujiColors.current.Coral, modifier = Modifier.padding(start = 20.dp))
+                } else {
+                    Icon(Icons.Rounded.EditNote, contentDescription = "更新余额",
+                        tint = LocalYujiColors.current.Mint, modifier = Modifier.padding(end = 20.dp))
+                }
             }
         },
     ) {
