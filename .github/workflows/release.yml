@@ -1,0 +1,78 @@
+name: Build & Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v10.6)'
+        required: true
+        default: 'v10.6'
+      notes:
+        description: 'Release notes'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup signing
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > yuji-release.jks
+            echo "storeFile=../yuji-release.jks"      > keystore.properties
+            echo "storePassword=${{ secrets.KEY_STORE_PASSWORD }}" >> keystore.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}"               >> keystore.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}"         >> keystore.properties
+          else
+            keytool -genkeypair \
+              -alias yuji -keyalg RSA -keysize 2048 -validity 10000 \
+              -keystore yuji-release.jks \
+              -storepass yuji2024 -keypass yuji2024 \
+              -dname "CN=Yuji App,O=Yuji,C=CN" 2>/dev/null
+            echo "storeFile=../yuji-release.jks" > keystore.properties
+            echo "storePassword=yuji2024"        >> keystore.properties
+            echo "keyAlias=yuji"                 >> keystore.properties
+            echo "keyPassword=yuji2024"          >> keystore.properties
+          fi
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        run: ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Get version name
+        id: version
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle.kts | grep -oP '"[^"]+"' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/yuji-v${{ steps.version.outputs.version }}.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: 余记 v${{ steps.version.outputs.version }}
+          body: |
+            ${{ github.event.inputs.notes != '' && github.event.inputs.notes || '## 更新内容\n\n- UI 交互改进：FAB 滚动收缩、余额对话框自动聚焦全选、下拉刷新汇率\n- 账户行左滑快速更新余额\n- 分组长按菜单（重命名/删除）\n- 批量更新键盘 Next 自动滚动\n- 快照历史左滑直接删除' }}
+          files: app/build/outputs/apk/release/yuji-v${{ steps.version.outputs.version }}.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
