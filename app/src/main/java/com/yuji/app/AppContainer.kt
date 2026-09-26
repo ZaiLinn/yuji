@@ -50,8 +50,17 @@ class AppContainer(private val context: Context) {
                 Log.e(TAG, "bootstrap failed", it)
                 notice.value = "初始化失败：${it.message}"
             }
+            runCatching { repository.applyRecurring() }.onFailure { Log.e(TAG, "recurring failed", it) }
             _ready.value = true
             repository.refreshRates()
+        }
+    }
+
+    /** Applies due fixed income / expenses, e.g. when the app comes back to the foreground. */
+    fun applyRecurring() {
+        if (!_ready.value) return
+        scope.launch {
+            runCatching { repository.applyRecurring() }.onFailure { Log.e(TAG, "recurring failed", it) }
         }
     }
 

@@ -57,6 +57,7 @@ object SnapshotReason {
     const val DELETE = "delete"
     const val IMPORT = "import"
     const val RATES_READY = "rates"
+    const val RECURRING = "recurring"
 }
 
 @Entity(tableName = "snapshots", indices = [Index("createdAt")])
@@ -122,4 +123,32 @@ data class TransferEntity(
     val fee: BigDecimal,
     val note: String = "",
     val at: Long,
+)
+
+object RecurringPeriod {
+    const val MONTHLY = "monthly"
+    const val YEARLY = "yearly"
+}
+
+/**
+ * A fixed income or expense that changes one account's balance on a schedule.
+ * Not a foreign key, so the table stays simple; rules are removed together with their account.
+ */
+@Entity(tableName = "recurring", indices = [Index("accountId")])
+data class RecurringEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val accountId: Long,
+    val name: String,
+    /** Always positive, in the account's currency; [income] decides the direction. */
+    val amount: BigDecimal,
+    val income: Boolean,
+    val period: String,
+    /** 1–12, used only by yearly rules. */
+    val month: Int,
+    /** 1–31; months that are shorter use their last day. */
+    val day: Int,
+    val enabled: Boolean = true,
+    /** Start of the day of the next occurrence that has not been applied yet. */
+    val nextAt: Long,
+    val createdAt: Long,
 )

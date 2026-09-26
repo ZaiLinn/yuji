@@ -6,6 +6,7 @@ import com.yuji.app.data.db.BalanceHistoryEntity
 import com.yuji.app.data.db.GroupEntity
 import com.yuji.app.data.db.RateEntity
 import com.yuji.app.data.db.RateSource
+import com.yuji.app.data.db.RecurringEntity
 import com.yuji.app.data.db.SnapshotEntity
 import com.yuji.app.data.db.SnapshotItemEntity
 import com.yuji.app.data.db.SnapshotReason
@@ -16,6 +17,7 @@ import com.yuji.app.data.settings.SettingsStore
 import com.yuji.app.domain.Currency
 import com.yuji.app.domain.Money
 import com.yuji.app.domain.Portfolio
+import com.yuji.app.domain.Recurrence
 import com.yuji.app.domain.SnapshotService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,18 @@ data class AccountDraft(
     val includeInTotal: Boolean,
 )
 
+data class RecurringDraft(
+    val id: Long?,
+    val accountId: Long,
+    val name: String,
+    val amount: BigDecimal,
+    val income: Boolean,
+    val period: String,
+    val month: Int,
+    val day: Int,
+    val enabled: Boolean,
+)
+
 class YujiRepository(
     private val db: YujiDatabase,
     private val settings: SettingsStore,
@@ -57,6 +71,9 @@ class YujiRepository(
 
     val snapshots: StateFlow<List<SnapshotEntity>> =
         db.snapshots().observeAll().stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val recurring: StateFlow<List<RecurringEntity>> =
+        db.recurring().observeAll().stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     fun history(accountId: Long): Flow<List<BalanceHistoryEntity>> = db.history().observeFor(accountId)
     fun transfersOf(accountId: Long): Flow<List<TransferEntity>> = db.transfers().observeFor(accountId)
@@ -115,6 +132,7 @@ class YujiRepository(
     }
 
     suspend fun deleteAccount(id: Long) = db.withTransaction {
+        db.recurring().deleteForAccount(id)
         db.accounts().delete(id)
         snapshotService.capture(SnapshotReason.DELETE)
     }
@@ -163,6 +181,99 @@ class YujiRepository(
                 BalanceHistoryEntity(accountId = id, balance = balance, valueCny = rate?.let { Money.toCny(balance, it) }, at = at)
             },
         )
+    }
+
+    // ---- fixed income / expenses ----
+
+    suspend fun recurringRule(id: Long): RecurringEntity? = db.recurring().get(id)
+
+    /**
+     * A new rule first runs on its next date after today, so it never repeats a change the user
+     * already made by hand. Changing the schedule or turning a rule back on also starts from now
+     * instead of catching up on skipped dates.
+     */
+    suspend fun saveRecurring(d: RecurringDraft): Long = db.withTransaction {
+        require(d.amount.signum() > 0) { "金额必须大于 0" }
+        requireNotNull(db.accounts().get(d.accountId)) { "账户不存在" }
+        val now = clock()
+        val old = d.id?.let { db.recurring().get(it) }
+        val restart = old == null || !old.enabled ||
+            old.period != d.period || old.month != d.month || old.day != d.day
+        val nextAt = if (restart) Recurrence.nextAfter(d.period, d.month, d.day, now) else old!!.nextAt
+        val rule = RecurringEntity(
+            id = old?.id ?: 0,
+            accountId = d.accountId,
+            name = d.name,
+            amount = d.amount,
+            income = d.income,
+            period = d.period,
+            month = d.month,
+            day = d.day,
+            enabled = d.enabled,
+            nextAt = nextAt,
+            createdAt = old?.createdAt ?: now,
+        )
+        if (old == null) db.recurring().insert(rule) else { db.recurring().update(rule); old.id }
+    }
+
+    suspend fun setRecurringEnabled(id: Long, enabled: Boolean) = db.withTransaction {
+        val old = db.recurring().get(id) ?: return@withTransaction
+        if (old.enabled == enabled) return@withTransaction
+        val nextAt = if (enabled) Recurrence.nextAfter(old, clock()) else old.nextAt
+        db.recurring().update(old.copy(enabled = enabled, nextAt = nextAt))
+    }
+
+    suspend fun deleteRecurring(id: Long) = db.recurring().delete(id)
+
+    /**
+     * Applies every due occurrence, including ones missed while the app was closed. Each one is
+     * logged as a one-sided transfer on the account; one snapshot covers the whole run.
+     * Returns the number of occurrences applied.
+     */
+    suspend fun applyRecurring(): Int = db.withTransaction {
+        val now = clock()
+        val due = db.recurring().due(now)
+        if (due.isEmpty()) return@withTransaction 0
+        val balances = mutableMapOf<Long, AccountEntity>()
+        var applied = 0
+        for (rule in due) {
+            val account = balances[rule.accountId] ?: db.accounts().get(rule.accountId)
+            if (account == null) {
+                db.recurring().delete(rule.id)
+                continue
+            }
+            var next = rule.nextAt
+            var balance = account.balance
+            var runs = 0
+            while (next <= now && runs < MAX_CATCH_UP) {
+                balance = if (rule.income) balance + rule.amount else balance - rule.amount
+                db.transfers().insert(
+                    TransferEntity(
+                        fromId = if (rule.income) null else account.id,
+                        toId = if (rule.income) account.id else null,
+                        outAmount = rule.amount,
+                        inAmount = rule.amount,
+                        fee = BigDecimal.ZERO,
+                        note = RECURRING_NOTE_PREFIX + rule.name,
+                        at = next,
+                    ),
+                )
+                next = Recurrence.nextAfter(rule, next)
+                runs++
+            }
+            // Past the catch-up limit, skip ahead instead of applying years of changes at once.
+            if (next <= now) next = Recurrence.nextAfter(rule, now)
+            // updatedAt stays: an automatic change is not the user confirming the real balance.
+            balances[account.id] = account.copy(balance = balance)
+            db.recurring().update(rule.copy(nextAt = next))
+            applied += runs
+        }
+        if (balances.isNotEmpty()) {
+            db.accounts().updateAll(balances.values.toList())
+            recordHistory(balances.values.map { it.id to it.balance }, balances.values.associate { it.id to it.currency }, now)
+        }
+        if (applied > 0) snapshotService.capture(SnapshotReason.RECURRING)
+        applied
     }
 
     // ---- groups & ordering ----
@@ -243,4 +354,10 @@ class YujiRepository(
 
     private fun csvDate(at: Long): String =
         java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(at))
+
+    companion object {
+        /** Marks transfers written by fixed income / expense rules; the rule name follows. */
+        const val RECURRING_NOTE_PREFIX = "定期·"
+        private const val MAX_CATCH_UP = 120
+    }
 }

@@ -3,6 +3,8 @@ package com.yuji.app
 import android.net.Uri
 import com.yuji.app.data.backup.BackupManager
 import com.yuji.app.data.db.IconType
+import com.yuji.app.data.db.RecurringEntity
+import com.yuji.app.data.db.RecurringPeriod
 import com.yuji.app.data.icons.IconRepository
 import com.yuji.app.data.settings.SettingsStore
 import com.yuji.app.domain.SnapshotService
@@ -16,6 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.io.IOException
+import java.math.BigDecimal
 
 @RunWith(RobolectricTestRunner::class)
 class BackupTest {
@@ -27,6 +30,9 @@ class BackupTest {
         db.seed(Triple("支付宝", "CNY", "2667.69"), Triple("BTC 钱包", "BTC", "0.01234567"), rates = mapOf("CNY" to "1", "BTC" to "450000.5"))
         db.accounts().update(db.accounts().get(1)!!.copy(iconType = IconType.EMOJI, iconValue = "💳"))
         SnapshotService(db, FakeFlag()).capture("update")
+        db.recurring().insert(
+            RecurringEntity(accountId = 1, name = "工资", amount = BigDecimal("8000"), income = true, period = RecurringPeriod.MONTHLY, month = 1, day = 10, nextAt = 123, createdAt = 0),
+        )
         val backup = manager(db)
 
         val file = File(context.cacheDir, "t.yuji")
@@ -44,6 +50,9 @@ class BackupTest {
         assertEquals("0.01234567", restored[1].balance.toPlainString())
         assertEquals("💳", restored[0].iconValue)
         assertEquals(1, target.snapshots().count())
+        val rule = target.recurring().getAll().single()
+        assertEquals("工资", rule.name)
+        assertEquals(123L, rule.nextAt)
         assertEquals(2, target.snapshots().items(target.snapshots().latest()!!.id).size)
     }
 

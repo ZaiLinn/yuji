@@ -227,7 +227,7 @@ fun BackupScreen(nav: NavController) {
                 Text(settings.lastBackupAt?.let(Format::dateTime) ?: "从未备份", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "备份文件（.yuji）包含账户、分组、图标、余额历史、快照、汇率和资产目标，并附带 SHA-256 校验值用于发现文件损坏。文件未加密，请妥善保管。",
+                    "备份文件（.yuji）包含账户、分组、图标、余额历史、快照、汇率、固定收支和资产目标，并附带 SHA-256 校验值用于发现文件损坏。文件未加密，请妥善保管。",
                     style = MaterialTheme.typography.bodySmall, color = LocalYujiColors.current.TextMuted,
                 )
             }

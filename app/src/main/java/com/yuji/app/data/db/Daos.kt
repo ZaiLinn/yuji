@@ -144,6 +144,33 @@ interface TransferDao {
 }
 
 @Dao
+interface RecurringDao {
+    @Query("SELECT * FROM recurring ORDER BY income DESC, period, id")
+    fun observeAll(): Flow<List<RecurringEntity>>
+
+    @Query("SELECT * FROM recurring ORDER BY id")
+    suspend fun getAll(): List<RecurringEntity>
+
+    @Query("SELECT * FROM recurring WHERE id = :id")
+    suspend fun get(id: Long): RecurringEntity?
+
+    @Query("SELECT * FROM recurring WHERE enabled = 1 AND nextAt <= :now ORDER BY nextAt, id")
+    suspend fun due(now: Long): List<RecurringEntity>
+
+    @Insert
+    suspend fun insert(rule: RecurringEntity): Long
+
+    @Update
+    suspend fun update(rule: RecurringEntity)
+
+    @Query("DELETE FROM recurring WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM recurring WHERE accountId = :accountId")
+    suspend fun deleteForAccount(accountId: Long)
+}
+
+@Dao
 interface MaintenanceDao {
     @Query("DELETE FROM snapshot_items")
     suspend fun clearSnapshotItems()
@@ -166,6 +193,9 @@ interface MaintenanceDao {
     @Query("DELETE FROM rates")
     suspend fun clearRates()
 
+    @Query("DELETE FROM recurring")
+    suspend fun clearRecurring()
+
     /** Call inside a transaction. */
     suspend fun clearAll() {
         clearSnapshotItems()
@@ -175,5 +205,6 @@ interface MaintenanceDao {
         clearAccounts()
         clearGroups()
         clearRates()
+        clearRecurring()
     }
 }

@@ -7,6 +7,7 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.svg.SvgDecoder
 import com.yuji.app.data.rates.RateWorker
+import com.yuji.app.data.recurring.RecurringWorker
 
 class YujiApp : Application(), SingletonImageLoader.Factory {
     lateinit var container: AppContainer
@@ -17,6 +18,7 @@ class YujiApp : Application(), SingletonImageLoader.Factory {
         container = AppContainer(this)
         container.start()
         RateWorker.schedule(this)
+        RecurringWorker.schedule(this)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

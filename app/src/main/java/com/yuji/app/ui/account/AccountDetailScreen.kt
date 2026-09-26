@@ -47,6 +47,7 @@ import androidx.navigation.NavController
 import com.yuji.app.domain.Currency
 import com.yuji.app.domain.Money
 import com.yuji.app.ui.Format
+import com.yuji.app.data.YujiRepository
 import com.yuji.app.ui.components.AccountIcon
 import com.yuji.app.ui.components.ChartPoint
 import com.yuji.app.ui.components.CnyText
@@ -184,7 +185,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
             }
 
             if (transfers.isNotEmpty()) {
-                item { SectionHeader("转移记录") }
+                item { SectionHeader("转移与固定收支") }
                 item {
                     YujiCard(padding = PaddingValues(vertical = 4.dp)) {
                         transfers.forEachIndexed { i, t ->
@@ -198,14 +199,20 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                val recurring = otherId == null && t.note.startsWith(YujiRepository.RECURRING_NOTE_PREFIX)
                                 Column(Modifier.weight(1f)) {
                                     Text(
-                                        if (isOut) "转出 → $otherName" else "转入 ← $otherName",
+                                        when {
+                                            recurring -> (if (isOut) "固定支出 · " else "固定收入 · ") +
+                                                t.note.removePrefix(YujiRepository.RECURRING_NOTE_PREFIX)
+                                            isOut -> "转出 → $otherName"
+                                            else -> "转入 ← $otherName"
+                                        },
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     val sub = buildList {
-                                        add(Format.dateTime(t.at))
-                                        if (t.note.isNotBlank()) add(t.note)
+                                        add(if (recurring) Format.date(t.at) else Format.dateTime(t.at))
+                                        if (t.note.isNotBlank() && !recurring) add(t.note)
                                         if (isOut && t.fee.signum() > 0) add("手续费 ${Money.amount(t.fee, a.currency, withCode = false)}")
                                     }.joinToString(" · ")
                                     Text(sub, style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextFaint)
