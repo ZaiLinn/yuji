@@ -57,7 +57,6 @@ object SnapshotReason {
     const val DELETE = "delete"
     const val IMPORT = "import"
     const val RATES_READY = "rates"
-    const val LEGACY = "legacy"
 }
 
 @Entity(tableName = "snapshots", indices = [Index("createdAt")])

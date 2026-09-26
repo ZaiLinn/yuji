@@ -15,7 +15,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.math.BigDecimal
 
 enum class ThemeMode { DARK, LIGHT }
 
@@ -95,8 +94,6 @@ data class Trend(val up: Color, val down: Color, val neutral: Color) {
 
 val LocalTrend = staticCompositionLocalOf { Trend(YujiColors.Dark.Mint, YujiColors.Dark.Coral, YujiColors.Dark.TextMuted) }
 val LocalHideAmounts = staticCompositionLocalOf { false }
-val LocalDisplayCurrency = staticCompositionLocalOf { "CNY" }
-val LocalDisplayRate = staticCompositionLocalOf { BigDecimal.ONE }
 
 private val darkScheme = darkColorScheme(
     primary = YujiColors.Dark.Mint,

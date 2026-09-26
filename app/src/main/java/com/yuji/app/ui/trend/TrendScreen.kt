@@ -3,7 +3,6 @@ package com.yuji.app.ui.trend
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,13 +42,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -118,7 +115,6 @@ fun TrendScreen(nav: NavController) {
     var selecting by rememberSaveable { mutableStateOf(false) }
     var confirmDeleteId by remember { mutableStateOf<Long?>(null) }
     var selected by rememberSaveable { mutableStateOf(listOf<Long>()) }
-    var pinchAccum by remember { mutableFloatStateOf(1f) }
 
     val now = System.currentTimeMillis()
     val start = range.start(now)
@@ -166,25 +162,7 @@ fun TrendScreen(nav: NavController) {
                 }
             }
             item {
-                YujiCard(
-                    padding = PaddingValues(16.dp),
-                    modifier = Modifier.pointerInput(range) {
-                        detectTransformGestures { _, _, zoom, _ ->
-                            pinchAccum *= zoom
-                            val idx = Range.entries.indexOf(range)
-                            when {
-                                pinchAccum < 0.65f -> {
-                                    range = Range.entries.getOrElse(idx + 1) { Range.ALL }
-                                    pinchAccum = 1f
-                                }
-                                pinchAccum > 1.55f -> {
-                                    range = Range.entries.getOrElse(idx - 1) { Range.M1 }
-                                    pinchAccum = 1f
-                                }
-                            }
-                        }
-                    },
-                ) {
+                YujiCard(padding = PaddingValues(16.dp)) {
                     if (inRange.size < 2) {
                         EmptyState(
                             Icons.Rounded.ShowChart,

@@ -97,7 +97,6 @@ import com.yuji.app.ui.components.YujiCard
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.nav.Routes
 import com.yuji.app.ui.theme.Amount
-import com.yuji.app.ui.theme.LocalDisplayCurrency
 import com.yuji.app.ui.theme.LocalHideAmounts
 import com.yuji.app.ui.theme.LocalYujiColors
 import com.yuji.app.ui.theme.YujiColors
@@ -416,7 +415,7 @@ private fun HeroCard(
         .map { ChartPoint(it.createdAt, it.totalCny.toDouble()) } + ChartPoint(now, total.toDouble())
 
     YujiCard(modifier, padding = PaddingValues(20.dp), onClick = onClick) {
-        Text("净资产 · ${LocalDisplayCurrency.current}", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
+        Text("净资产", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
         Spacer(Modifier.height(8.dp))
         CnyText(total, Amount.hero)
         if (liabilities.signum() > 0) {

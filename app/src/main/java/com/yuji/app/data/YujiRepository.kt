@@ -110,7 +110,7 @@ class YujiRepository(
         if (old == null || old.balance.compareTo(d.balance) != 0 || old.currency != d.currency) {
             recordHistory(listOf(id to d.balance), d.currency.let { mapOf(id to it) }, now)
         }
-        if (valueChanged || old?.name != d.name) snapshotService.capture(SnapshotReason.EDIT)
+        if (valueChanged) snapshotService.capture(SnapshotReason.EDIT)
         id
     }
 
@@ -220,6 +220,8 @@ class YujiRepository(
     suspend fun deleteSnapshot(id: Long) = db.snapshots().delete(id)
 
     suspend fun captureSnapshot(reason: String) = db.withTransaction { snapshotService.capture(reason) }
+
+    suspend fun mergeSameDaySnapshots(): Int = db.withTransaction { snapshotService.mergeSameDay() }
 
     suspend fun exportCsv(): String = withContext(Dispatchers.IO) {
         val groups = db.groups().getAll().associateBy { it.id }

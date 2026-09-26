@@ -16,7 +16,6 @@ data class Settings(
     val greenUp: Boolean = true,
     val lastBackupAt: Long? = null,
     val themeMode: ThemeMode = ThemeMode.DARK,
-    val displayCurrency: String = "CNY",
 )
 
 /**
@@ -39,7 +38,6 @@ class SettingsStore(context: Context) : PendingSnapshotFlag {
     fun setGreenUp(greenUp: Boolean) = edit { putBoolean(KEY_GREEN_UP, greenUp) }
     fun setLastBackupAt(at: Long) = edit { putLong(KEY_LAST_BACKUP, at) }
     fun setThemeMode(mode: ThemeMode) = edit { putString(KEY_THEME, mode.name) }
-    fun setDisplayCurrency(code: String) = edit { putString(KEY_DISPLAY_CURRENCY, code) }
 
     private fun edit(block: SharedPreferences.Editor.() -> Unit) {
         prefs.edit().apply(block).apply()
@@ -52,7 +50,6 @@ class SettingsStore(context: Context) : PendingSnapshotFlag {
         greenUp = prefs.getBoolean(KEY_GREEN_UP, true),
         lastBackupAt = prefs.getLong(KEY_LAST_BACKUP, 0L).takeIf { it > 0 },
         themeMode = prefs.getString(KEY_THEME, null)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.DARK,
-        displayCurrency = prefs.getString(KEY_DISPLAY_CURRENCY, "CNY") ?: "CNY",
     )
 
     private companion object {
@@ -62,6 +59,5 @@ class SettingsStore(context: Context) : PendingSnapshotFlag {
         const val KEY_LAST_BACKUP = "last_backup_at"
         const val KEY_PENDING = "pending_snapshot"
         const val KEY_THEME = "theme_mode"
-        const val KEY_DISPLAY_CURRENCY = "display_currency"
     }
 }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -20,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CurrencyExchange
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Folder
@@ -32,14 +30,12 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,7 +49,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.yuji.app.domain.Currency
 import com.yuji.app.domain.Money
 import com.yuji.app.ui.Format
 import com.yuji.app.ui.components.YujiCard
@@ -69,7 +64,6 @@ fun SettingsScreen(nav: NavController) {
     val c = LocalContainer.current
     val settings by c.settings.settings.collectAsStateWithLifecycle()
     var goal by remember { mutableStateOf(false) }
-    var showCurrencyPicker by remember { mutableStateOf(false) }
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -116,12 +110,6 @@ fun SettingsScreen(nav: NavController) {
                     settings.goal?.let { Money.compactCny(it) } ?: "未设置",
                     onClick = { goal = true },
                 )
-                Divider()
-                SettingRow(
-                    Icons.Rounded.CurrencyExchange, "显示货币",
-                    Currency.of(settings.displayCurrency)?.let { "${it.code} ${it.label}" } ?: settings.displayCurrency,
-                    onClick = { showCurrencyPicker = true },
-                )
             }
         }
 
@@ -158,39 +146,6 @@ fun SettingsScreen(nav: NavController) {
     }
 
     if (goal) GoalDialog(settings.goal, onDismiss = { goal = false }, onSave = c.settings::setGoal)
-
-    if (showCurrencyPicker) {
-        val fiatCurrencies = Currency.entries.filter { !it.isCrypto }
-        AlertDialog(
-            onDismissRequest = { showCurrencyPicker = false },
-            containerColor = LocalYujiColors.current.CardHigh,
-            title = { Text("显示货币") },
-            text = {
-                Column {
-                    Text("净资产将以所选货币换算显示。", style = MaterialTheme.typography.bodyMedium, color = LocalYujiColors.current.TextMuted)
-                    Spacer(Modifier.height(12.dp))
-                    fiatCurrencies.forEach { cur ->
-                        Row(
-                            Modifier.fillMaxWidth().clickable {
-                                c.settings.setDisplayCurrency(cur.code)
-                                showCurrencyPicker = false
-                            }.padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text("${cur.symbol}  ${cur.code}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                            Text(cur.label, style = MaterialTheme.typography.bodyMedium, color = LocalYujiColors.current.TextMuted)
-                            if (settings.displayCurrency == cur.code) {
-                                Spacer(Modifier.width(8.dp))
-                                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = LocalYujiColors.current.Mint, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = { TextButton(onClick = { showCurrencyPicker = false }) { Text("取消", color = LocalYujiColors.current.TextMuted) } },
-        )
-    }
 }
 
 @Composable

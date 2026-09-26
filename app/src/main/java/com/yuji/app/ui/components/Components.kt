@@ -51,8 +51,6 @@ import androidx.compose.foundation.Image
 import coil3.compose.rememberAsyncImagePainter
 import com.yuji.app.data.db.IconType
 import com.yuji.app.domain.Money
-import com.yuji.app.ui.theme.LocalDisplayCurrency
-import com.yuji.app.ui.theme.LocalDisplayRate
 import com.yuji.app.ui.theme.LocalHideAmounts
 import com.yuji.app.ui.theme.LocalTrend
 import com.yuji.app.ui.theme.LocalYujiColors
@@ -106,14 +104,12 @@ fun CnyText(
     textAlign: TextAlign? = null,
 ) {
     val resolvedColor = if (color == Color.Unspecified) LocalYujiColors.current.Text else color
-    val displayCurrency = LocalDisplayCurrency.current
-    val displayRate = LocalDisplayRate.current
     val text = when {
         value == null -> "—"
         LocalHideAmounts.current -> MASK
-        signed -> Money.displaySignedCny(value, displayCurrency, displayRate)
-        compact -> Money.displayCompactCny(value, displayCurrency, displayRate)
-        else -> Money.displayCny(value, displayCurrency, displayRate)
+        signed -> Money.signedCny(value)
+        compact -> Money.compactCny(value)
+        else -> Money.cny(value)
     }
     Text(text, style = style, color = resolvedColor, modifier = modifier, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = textAlign)
 }

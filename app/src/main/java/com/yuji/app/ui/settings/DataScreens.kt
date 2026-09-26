@@ -249,7 +249,6 @@ fun BackupScreen(nav: NavController) {
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape = RoundedCornerShape(16.dp),
             ) { Text("导出余额历史 CSV") }
-            Text("也可以导入旧版余记（9.x）导出的备份。", style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextFaint)
         }
     }
 

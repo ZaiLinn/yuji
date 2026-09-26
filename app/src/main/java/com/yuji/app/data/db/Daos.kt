@@ -100,8 +100,14 @@ interface SnapshotDao {
     @Insert
     suspend fun insert(snapshot: SnapshotEntity): Long
 
+    @Update
+    suspend fun update(snapshot: SnapshotEntity)
+
     @Insert
     suspend fun insertItems(items: List<SnapshotItemEntity>)
+
+    @Query("DELETE FROM snapshot_items WHERE snapshotId = :snapshotId")
+    suspend fun deleteItems(snapshotId: Long)
 
     @Query("UPDATE snapshots SET note = :note WHERE id = :id")
     suspend fun updateNote(id: Long, note: String)

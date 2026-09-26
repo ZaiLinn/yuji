@@ -42,45 +42,6 @@ object Money {
         }
     }
 
-    /** Converts a CNY amount to the display currency and formats it. Falls back to cny() when displayCurrency is CNY. */
-    fun displayCny(value: BigDecimal, displayCurrency: String, displayRate: BigDecimal): String {
-        if (displayCurrency == Currency.BASE) return cny(value)
-        val cur = Currency.of(displayCurrency)
-        val symbol = cur?.symbol ?: displayCurrency
-        val converted = value.multiply(displayRate)
-        val sign = if (converted.signum() < 0) "-" else ""
-        val d = Currency.decimalsOf(displayCurrency)
-        val minDigits = if (d == 0) 0 else minOf(2, d)
-        return sign + symbol + grouped(converted.abs(), minDigits, d)
-    }
-
-    fun displaySignedCny(value: BigDecimal, displayCurrency: String, displayRate: BigDecimal): String {
-        if (displayCurrency == Currency.BASE) return signedCny(value)
-        val cur = Currency.of(displayCurrency)
-        val symbol = cur?.symbol ?: displayCurrency
-        val converted = value.multiply(displayRate)
-        val sign = when {
-            converted.signum() > 0 -> "+"
-            converted.signum() < 0 -> "−"
-            else -> ""
-        }
-        val d = Currency.decimalsOf(displayCurrency)
-        val minDigits = if (d == 0) 0 else minOf(2, d)
-        return sign + symbol + grouped(converted.abs(), minDigits, d)
-    }
-
-    fun displayCompactCny(value: BigDecimal, displayCurrency: String, displayRate: BigDecimal): String {
-        if (displayCurrency == Currency.BASE) return compactCny(value)
-        val cur = Currency.of(displayCurrency)
-        val symbol = cur?.symbol ?: displayCurrency
-        val converted = value.multiply(displayRate)
-        val sign = if (converted.signum() < 0) "-" else ""
-        val a = converted.abs()
-        val d = Currency.decimalsOf(displayCurrency)
-        val minDigits = if (d == 0) 0 else minOf(2, d)
-        return sign + symbol + grouped(a, minDigits, d)
-    }
-
     /** Amount in its own currency: "1,943.96 EUR", "0.01234567 BTC". */
     fun amount(value: BigDecimal, currency: String, withCode: Boolean = true): String {
         val d = Currency.decimalsOf(currency)

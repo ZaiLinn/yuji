@@ -14,9 +14,6 @@ import com.yuji.app.data.db.SnapshotItemEntity
 import com.yuji.app.data.db.TransferEntity
 import com.yuji.app.data.db.YujiDatabase
 import com.yuji.app.data.icons.IconRepository
-import com.yuji.app.data.legacy.LegacyData
-import com.yuji.app.data.legacy.LegacyImporter
-import com.yuji.app.data.legacy.Row
 import com.yuji.app.data.settings.SettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,7 +33,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
@@ -58,7 +54,7 @@ class BackupPreview internal constructor(
 )
 
 /**
- * `.yuji` backups. v3 is written by this version; v2 files from the old app are still accepted.
+ * `.yuji` backups, format v3.
  * The SHA-256 checksum detects corruption; it is not a signature and cannot prove authorship.
  */
 class BackupManager(
@@ -66,7 +62,6 @@ class BackupManager(
     private val db: YujiDatabase,
     private val settings: SettingsStore,
     private val icons: IconRepository,
-    private val importer: LegacyImporter,
 ) {
     fun suggestedFileName(): String =
         "yuji-" + SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".yuji"
@@ -98,8 +93,8 @@ class BackupManager(
             ?.optInt("version", 0)
             ?: throw IOException("这不是余记备份文件")
         when (version) {
-            2 -> inspectV2(text)
             3 -> inspectV3(text)
+            2 -> throw IOException("旧版余记（9.x）的备份已不再支持")
             else -> throw IOException("不支持的备份版本：$version")
         }
     }
@@ -197,60 +192,6 @@ class BackupManager(
             }
             settings.setGoal(goal)
         }
-    }
-
-    // ---------------- v2 (old app) ----------------
-
-    private fun inspectV2(text: String): BackupPreview {
-        val root = JSONObject(text)
-        val tables = root.optJSONObject("tables") ?: throw IOException("备份缺少数据表")
-        val rows = LegacyImporter.TABLES.associateWith { name ->
-            val arr = tables.optJSONArray(name) ?: JSONArray()
-            (0 until arr.length()).map { i -> arr.getJSONObject(i).toRow() }
-        }
-        val iconJson = root.optJSONObject("icons") ?: JSONObject()
-        val stored = root.optJSONObject("integrity")?.optString("checksum").orEmpty()
-        val checksumOk = runCatching { sha256(legacyPayload(root)).equals(stored, ignoreCase = true) }.getOrDefault(false)
-        val goal = root.optString("asset_goal", "0")
-        val data = LegacyData(rows, goal) { id, _ ->
-            iconJson.optString(id.toString()).takeIf { it.isNotEmpty() }?.let { Base64.decode(it, Base64.DEFAULT) }
-        }
-        return BackupPreview(
-            version = 2,
-            createdAt = root.optString("created_at"),
-            accounts = rows["accounts"].orEmpty().size,
-            snapshots = rows["asset_snapshots"].orEmpty().size,
-            checksumOk = checksumOk,
-        ) {
-            val summary = importer.import(data)
-            settings.setGoal(summary.goal)
-        }
-    }
-
-    /** Same canonical form as the old app's BackupRecovery.backupPayload. */
-    private fun legacyPayload(root: JSONObject): String {
-        val p = JSONObject()
-        p.put("format", root.getString("format"))
-        p.put("version", root.getInt("version"))
-        p.put("created_at", root.getString("created_at"))
-        p.put("asset_goal", root.optString("asset_goal", "0"))
-        p.put("tables", root.getJSONObject("tables"))
-        p.put("icons", root.optJSONObject("icons") ?: JSONObject())
-        return legacyCanonical(p)
-    }
-
-    private fun legacyCanonical(value: Any?): String = when (value) {
-        null, JSONObject.NULL -> "null"
-        is JSONObject -> value.keys().asSequence().toList().sorted()
-            .joinToString(",", "{", "}") { JSONObject.quote(it) + ":" + legacyCanonical(value.get(it)) }
-        is JSONArray -> (0 until value.length()).joinToString(",", "[", "]") { legacyCanonical(value.get(it)) }
-        is Number, is Boolean -> value.toString()
-        else -> JSONObject.quote(value.toString())
-    }
-
-    private fun JSONObject.toRow(): Row = keys().asSequence().associateWith { k ->
-        val v = get(k)
-        if (v == JSONObject.NULL) null else v
     }
 
     // ---------------- JSON mapping ----------------
