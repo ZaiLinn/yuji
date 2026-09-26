@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -67,6 +68,8 @@ import androidx.compose.foundation.shape.CircleShape
 fun SettingsScreen(nav: NavController) {
     val c = LocalContainer.current
     val settings by c.settings.settings.collectAsStateWithLifecycle()
+    val rules by c.repository.recurring.collectAsStateWithLifecycle()
+    val activeRules = rules.count { it.enabled }
     var goal by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -121,6 +124,12 @@ fun SettingsScreen(nav: NavController) {
                 SettingRow(Icons.Rounded.Folder, "分组管理", "新建、重命名、排序分组；账户顺序在首页长按拖动", onClick = { nav.navigate(Routes.GROUPS) })
                 Divider()
                 SettingRow(Icons.Rounded.SwapHoriz, "资产转移", "记录账户之间的资金移动", onClick = { nav.navigate(Routes.transfer()) })
+                Divider()
+                SettingRow(
+                    Icons.Rounded.Repeat, "固定收支",
+                    if (activeRules == 0) "每月 / 每年定时增减账户余额" else "$activeRules 项生效中",
+                    onClick = { nav.navigate(Routes.RECURRING) },
+                )
             }
         }
 

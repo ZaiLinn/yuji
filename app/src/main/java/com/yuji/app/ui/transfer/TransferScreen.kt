@@ -182,7 +182,7 @@ fun TransferScreen(nav: NavController, presetFrom: Long?) {
 }
 
 @Composable
-private fun AccountSelector(label: String, value: AccountValue?, onClick: () -> Unit) {
+fun AccountSelector(label: String, value: AccountValue?, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().inputWell().clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -9,6 +9,8 @@ import com.yuji.app.data.db.BalanceHistoryEntity
 import com.yuji.app.data.db.GroupEntity
 import com.yuji.app.data.db.IconType
 import com.yuji.app.data.db.RateEntity
+import com.yuji.app.data.db.RecurringEntity
+import com.yuji.app.data.db.RecurringPeriod
 import com.yuji.app.data.db.SnapshotEntity
 import com.yuji.app.data.db.SnapshotItemEntity
 import com.yuji.app.data.db.TransferEntity
@@ -121,6 +123,7 @@ class BackupManager(
                     put("snapshot_items", JsonArray(allSnapshots.flatMap { db.snapshots().items(it.id) }.map(::itemJson)))
                     put("balance_history", JsonArray(db.history().getAll().map(::historyJson)))
                     put("transfers", JsonArray(db.transfers().getAll().map(::transferJson)))
+                    put("recurring", JsonArray(db.recurring().getAll().map(::recurringJson)))
                 },
             )
             put(
@@ -157,6 +160,8 @@ class BackupManager(
         val items = arr("snapshot_items").map(::itemOf)
         val history = arr("balance_history").map(::historyOf)
         val transfers = arr("transfers").map(::transferOf)
+        // Added in 11.3; older backups simply have no rules.
+        val recurring = data["recurring"]?.jsonArray?.map { recurringOf(it.jsonObject) }.orEmpty()
         val iconData = root["icons"]?.jsonObject.orEmpty()
         val goal = root["settings"]?.jsonObject?.get("goal")?.jsonPrimitive?.contentOrNull?.toBigDecimalOrNull()
 
@@ -189,6 +194,7 @@ class BackupManager(
                 db.snapshots().insertItems(items)
                 db.history().insert(history.filter { h -> restored.any { it.id == h.accountId } })
                 transfers.forEach { db.transfers().insert(it) }
+                recurring.filter { r -> restored.any { it.id == r.accountId } }.forEach { db.recurring().insert(it) }
             }
             settings.setGoal(goal)
         }
@@ -261,6 +267,20 @@ class BackupManager(
     private fun transferOf(o: JsonObject) = TransferEntity(
         fromId = o.long("fromId"), toId = o.long("toId"), outAmount = o.dec("outAmount") ?: BigDecimal.ZERO,
         inAmount = o.dec("inAmount") ?: BigDecimal.ZERO, fee = o.dec("fee") ?: BigDecimal.ZERO, note = o.str("note"), at = o.long("at") ?: 0,
+    )
+
+    private fun recurringJson(r: RecurringEntity) = buildJsonObject {
+        put("id", r.id); put("accountId", r.accountId); put("name", r.name); put("amount", dec(r.amount))
+        put("income", r.income); put("period", r.period); put("month", r.month); put("day", r.day)
+        put("enabled", r.enabled); put("nextAt", r.nextAt); put("createdAt", r.createdAt)
+    }
+    private fun recurringOf(o: JsonObject) = RecurringEntity(
+        id = o.long("id")!!, accountId = o.long("accountId")!!, name = o.str("name"),
+        amount = o.dec("amount") ?: BigDecimal.ZERO, income = o["income"]?.jsonPrimitive?.booleanOrNull ?: false,
+        period = o.str("period").ifEmpty { RecurringPeriod.MONTHLY },
+        month = o["month"]?.jsonPrimitive?.intOrNull ?: 1, day = o["day"]?.jsonPrimitive?.intOrNull ?: 1,
+        enabled = o["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
+        nextAt = o.long("nextAt") ?: 0, createdAt = o.long("createdAt") ?: 0,
     )
 
     companion object {

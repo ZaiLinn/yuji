@@ -102,6 +102,7 @@ fun reasonLabel(reason: String): String = when (reason) {
     SnapshotReason.DELETE -> "删除账户"
     SnapshotReason.IMPORT -> "导入"
     SnapshotReason.RATES_READY -> "汇率就绪"
+    SnapshotReason.RECURRING -> "固定收支"
     else -> "历史记录"
 }
 

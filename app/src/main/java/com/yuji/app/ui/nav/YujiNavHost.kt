@@ -52,6 +52,8 @@ import com.yuji.app.ui.account.AccountDetailScreen
 import com.yuji.app.ui.account.AccountEditScreen
 import com.yuji.app.ui.analysis.AnalysisScreen
 import com.yuji.app.ui.home.HomeScreen
+import com.yuji.app.ui.recurring.RecurringEditScreen
+import com.yuji.app.ui.recurring.RecurringScreen
 import com.yuji.app.ui.settings.AboutScreen
 import com.yuji.app.ui.settings.BackupScreen
 import com.yuji.app.ui.settings.GroupsScreen
@@ -83,6 +85,8 @@ object Routes {
     const val BACKUP = "settings/backup"
     const val ICONS = "settings/icons"
     const val ABOUT = "settings/about"
+    const val RECURRING = "settings/recurring"
+    const val RECURRING_EDIT = "settings/recurring/edit?id={id}"
 
     fun update(overdueOnly: Boolean = false) = "update?overdue=$overdueOnly"
     fun account(id: Long) = "account/$id"
@@ -90,6 +94,7 @@ object Routes {
     fun transfer(from: Long? = null) = "transfer?from=${from ?: -1}"
     fun snapshot(id: Long) = "snapshot/$id"
     fun compare(a: Long, b: Long) = "compare/$a/$b"
+    fun recurringEdit(id: Long? = null) = "settings/recurring/edit?id=${id ?: -1}"
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -202,6 +207,10 @@ fun YujiNavHost(nav: NavHostController = rememberNavController()) {
             screen(Routes.BACKUP) { BackupScreen(nav) }
             screen(Routes.ICONS) { IconCacheScreen(nav) }
             screen(Routes.ABOUT) { AboutScreen(nav) }
+            screen(Routes.RECURRING) { RecurringScreen(nav) }
+            screen(Routes.RECURRING_EDIT, arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L })) {
+                RecurringEditScreen(nav, it.arguments!!.getLong("id").takeIf { id -> id >= 0 })
+            }
         }
         // Tab pages draw edge to edge; fade scrolled content out under the status bar.
         if (showBar) {
