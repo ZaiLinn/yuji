@@ -18,13 +18,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.math.BigDecimal
 import java.util.Calendar
+import java.util.TimeZone
 
 @RunWith(RobolectricTestRunner::class)
 class RecurringTest {
     private fun repo(db: YujiDatabase, clock: () -> Long) =
         YujiRepository(db, SettingsStore(context), RateRepository(db, OkHttpClient()), CoroutineScope(Dispatchers.Unconfined), clock)
 
-    private fun at(year: Int, month: Int, day: Int, hour: Int = 0): Long = Calendar.getInstance().run {
+    private fun at(year: Int, month: Int, day: Int, hour: Int = 0): Long = Calendar.getInstance(Recurrence.ZONE).run {
         clear()
         set(year, month - 1, day, hour, 0)
         timeInMillis
@@ -43,6 +44,18 @@ class RecurringTest {
         // The same day counts only if it has not started yet.
         assertEquals(at(2026, 10, 26), Recurrence.nextAfter(RecurringPeriod.MONTHLY, 1, 26, at(2026, 9, 26, 10)))
         assertEquals(at(2027, 1, 5), Recurrence.nextAfter(RecurringPeriod.MONTHLY, 1, 5, at(2026, 12, 20)))
+    }
+
+    @Test fun scheduleUsesUtcPlus8RegardlessOfDeviceZone() {
+        val saved = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+            // 00:00 on Oct 26 in UTC+8 is Oct 25 16:00 UTC.
+            assertEquals(Calendar.getInstance(TimeZone.getTimeZone("UTC")).run { clear(); set(2026, 9, 25, 16, 0); timeInMillis }, Recurrence.nextAfter(RecurringPeriod.MONTHLY, 1, 26, at(2026, 9, 26, 10)))
+            assertEquals("2026年10月26日", Recurrence.date(at(2026, 10, 26)))
+        } finally {
+            TimeZone.setDefault(saved)
+        }
     }
 
     @Test fun yearlySchedule() {

@@ -2,13 +2,22 @@ package com.yuji.app.domain
 
 import com.yuji.app.data.db.RecurringEntity
 import com.yuji.app.data.db.RecurringPeriod
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
-/** Schedule math for fixed income / expense rules. Occurrences fall at 00:00 local time. */
+/**
+ * Schedule math for fixed income / expense rules. Occurrences fall at 00:00 in [ZONE] (UTC+8),
+ * whatever the device's time zone, so a rule never shifts to another day when travelling.
+ */
 object Recurrence {
+    val ZONE: TimeZone = TimeZone.getTimeZone("Asia/Shanghai")
+
     /** First occurrence strictly after [after]. */
     fun nextAfter(period: String, month: Int, day: Int, after: Long): Long {
-        val cal = Calendar.getInstance().apply { timeInMillis = after }
+        val cal = Calendar.getInstance(ZONE).apply { timeInMillis = after }
         val year = cal.get(Calendar.YEAR)
         return if (period == RecurringPeriod.YEARLY) {
             occurrence(year, month - 1, day).takeIf { it > after } ?: occurrence(year + 1, month - 1, day)
@@ -21,12 +30,16 @@ object Recurrence {
     fun nextAfter(rule: RecurringEntity, after: Long): Long = nextAfter(rule.period, rule.month, rule.day, after)
 
     /** Start of [day] in the given month (0-based, may overflow into the next year), clamped to the month's last day. */
-    private fun occurrence(year: Int, month0: Int, day: Int): Long = Calendar.getInstance().run {
+    private fun occurrence(year: Int, month0: Int, day: Int): Long = Calendar.getInstance(ZONE).run {
         clear()
         set(year, month0, 1)
         set(Calendar.DAY_OF_MONTH, day.coerceIn(1, getActualMaximum(Calendar.DAY_OF_MONTH)))
         timeInMillis
     }
+
+    /** Occurrence date as "2026年10月26日", read in [ZONE]. */
+    fun date(at: Long): String =
+        SimpleDateFormat("yyyy年M月d日", Locale.CHINA).apply { timeZone = ZONE }.format(Date(at))
 
     fun describe(period: String, month: Int, day: Int): String =
         if (period == RecurringPeriod.YEARLY) "每年 ${month} 月 ${day} 日" else "每月 ${day} 日"
