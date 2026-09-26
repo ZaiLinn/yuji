@@ -48,7 +48,6 @@ import com.yuji.app.domain.Currency
 import com.yuji.app.domain.Money
 import com.yuji.app.ui.Format
 import com.yuji.app.data.YujiRepository
-import com.yuji.app.domain.Recurrence
 import com.yuji.app.ui.components.AccountIcon
 import com.yuji.app.ui.components.ChartPoint
 import com.yuji.app.ui.components.CnyText
@@ -212,7 +211,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     val sub = buildList {
-                                        add(if (recurring) Recurrence.date(t.at) else Format.dateTime(t.at))
+                                        add(if (recurring) Format.date(t.at) else Format.dateTime(t.at))
                                         if (t.note.isNotBlank() && !recurring) add(t.note)
                                         if (isOut && t.fee.signum() > 0) add("手续费 ${Money.amount(t.fee, a.currency, withCode = false)}")
                                     }.joinToString(" · ")

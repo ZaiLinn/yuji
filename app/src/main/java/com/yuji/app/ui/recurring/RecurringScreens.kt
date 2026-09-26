@@ -49,6 +49,7 @@ import com.yuji.app.data.db.RecurringPeriod
 import com.yuji.app.domain.Money
 import com.yuji.app.domain.Portfolio
 import com.yuji.app.domain.Recurrence
+import com.yuji.app.ui.Format
 import com.yuji.app.ui.account.fieldColors
 import com.yuji.app.ui.components.CnyText
 import com.yuji.app.ui.components.ConfirmDialog
@@ -177,7 +178,7 @@ private fun RuleRow(rule: RecurringEntity, portfolio: Portfolio, onClick: () -> 
             val sub = buildList {
                 add(Recurrence.describe(rule.period, rule.month, rule.day))
                 add(account?.name ?: "账户已删除")
-                add(if (rule.enabled) "下次 " + Recurrence.date(rule.nextAt) else "已暂停")
+                add(if (rule.enabled) "下次 " + Format.date(rule.nextAt) else "已暂停")
             }.joinToString(" · ")
             Text(sub, style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextFaint, maxLines = 2)
         }
@@ -324,7 +325,7 @@ fun RecurringEditScreen(nav: NavController, id: Long?) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (day != null && day > 28) "没有 $day 日的月份，会在当月最后一天执行。" else "在当天 0 点（北京时间）后执行；错过的日期会在下次打开余记时补上。",
+                    if (day != null && day > 28) "没有 $day 日的月份，会在当月最后一天执行。" else "在当天 0 点后执行；错过的日期会在下次打开余记时补上。",
                     style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextFaint,
                 )
             }
@@ -340,7 +341,7 @@ fun RecurringEditScreen(nav: NavController, id: Long?) {
             if (id == null && valid && enabled) {
                 val next = Recurrence.nextAfter(period, month ?: 1, day!!, System.currentTimeMillis())
                 Text(
-                    "首次执行：${Recurrence.date(next)}。今天之前的日期不会补记。",
+                    "首次执行：${Format.date(next)}。今天之前的日期不会补记。",
                     style = MaterialTheme.typography.bodySmall, color = LocalYujiColors.current.TextMuted,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
