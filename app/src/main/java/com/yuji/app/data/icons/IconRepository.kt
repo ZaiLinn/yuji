@@ -66,12 +66,19 @@ class IconRepository(
     }
 
     /**
-     * Preview URL via jsDelivr CDN — no rate limit, no auth needed.
-     * Format: cdn.jsdelivr.net/npm/@iconify-json/{prefix}/icons/{name}.svg
+     * One icon as SVG from the Iconify API: api.iconify.design/{prefix}/{name}.svg.
+     * (The @iconify-json npm packages ship a single icons.json, not per-icon SVG files.)
+     * Monochrome icons are rendered white to sit on the dark icon plate; multicolor logos
+     * ignore the color and keep their own.
      */
     fun previewUrl(id: String): String {
         val (prefix, name) = id.split(':', limit = 2).let { it[0] to it.getOrElse(1) { "" } }
-        return "https://cdn.jsdelivr.net/npm/@iconify-json/$prefix/icons/$name.svg"
+        return "https://api.iconify.design".toHttpUrl().newBuilder()
+            .addPathSegment(prefix)
+            .addPathSegment("$name.svg")
+            .addQueryParameter("color", "#ffffff")
+            .build()
+            .toString()
     }
 
     suspend fun saveFromIconify(id: String): File = withContext(Dispatchers.IO) {

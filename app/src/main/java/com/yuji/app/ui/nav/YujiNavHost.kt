@@ -7,6 +7,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
+import com.yuji.app.ui.theme.ambientBackground
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,7 +59,6 @@ import com.yuji.app.ui.settings.IconCacheScreen
 import com.yuji.app.ui.settings.RatesScreen
 import com.yuji.app.ui.settings.SettingsScreen
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import com.yuji.app.ui.transfer.TransferScreen
 import com.yuji.app.ui.trend.CompareScreen
 import com.yuji.app.ui.trend.SnapshotScreen
@@ -99,11 +107,16 @@ fun YujiNavHost(nav: NavHostController = rememberNavController()) {
     val route = entry?.destination?.route
     val showBar = tabs.any { it.route == route }
 
+    val c = LocalYujiColors.current
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = c.Chrome,
         bottomBar = {
             if (showBar) {
-                NavigationBar(containerColor = LocalYujiColors.current.Background, tonalElevation = 0.dp) {
+                NavigationBar(
+                    containerColor = c.Chrome,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.drawBehind { drawLine(c.Outline, Offset(0f, 0f), Offset(size.width, 0f), 1f) },
+                ) {
                     tabs.forEach { tab ->
                         NavigationBarItem(
                             selected = route == tab.route,
@@ -117,11 +130,11 @@ fun YujiNavHost(nav: NavHostController = rememberNavController()) {
                             icon = { Icon(tab.icon, contentDescription = null) },
                             label = { Text(tab.label) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = LocalYujiColors.current.Mint,
-                                selectedTextColor = LocalYujiColors.current.Mint,
-                                indicatorColor = LocalYujiColors.current.Mint.copy(alpha = 0.12f),
-                                unselectedIconColor = LocalYujiColors.current.TextMuted,
-                                unselectedTextColor = LocalYujiColors.current.TextMuted,
+                                selectedIconColor = c.AccentText,
+                                selectedTextColor = c.Text,
+                                indicatorColor = c.AccentSoft,
+                                unselectedIconColor = c.TextFaint,
+                                unselectedTextColor = c.TextFaint,
                             ),
                         )
                     }
@@ -150,18 +163,18 @@ fun YujiNavHost(nav: NavHostController = rememberNavController()) {
                 else slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(260)) + fadeOut(tween(260))
             },
         ) {
-            composable(Routes.HOME) { HomeScreen(nav) }
-            composable(Routes.TREND) { TrendScreen(nav) }
-            composable(Routes.ANALYSIS) { AnalysisScreen(nav) }
-            composable(Routes.SETTINGS) { SettingsScreen(nav) }
-            composable(
+            screen(Routes.HOME) { HomeScreen(nav) }
+            screen(Routes.TREND) { TrendScreen(nav) }
+            screen(Routes.ANALYSIS) { AnalysisScreen(nav) }
+            screen(Routes.SETTINGS) { SettingsScreen(nav) }
+            screen(
                 Routes.UPDATE,
                 arguments = listOf(navArgument("overdue") { type = NavType.BoolType; defaultValue = false }),
             ) { QuickUpdateScreen(nav, it.arguments?.getBoolean("overdue") ?: false) }
-            composable(Routes.ACCOUNT, arguments = listOf(navArgument("id") { type = NavType.LongType })) {
+            screen(Routes.ACCOUNT, arguments = listOf(navArgument("id") { type = NavType.LongType })) {
                 AccountDetailScreen(nav, it.arguments!!.getLong("id"))
             }
-            composable(
+            screen(
                 Routes.EDIT,
                 arguments = listOf(
                     navArgument("id") { type = NavType.LongType; defaultValue = -1L },
@@ -174,28 +187,28 @@ fun YujiNavHost(nav: NavHostController = rememberNavController()) {
                     it.arguments!!.getLong("group").takeIf { g -> g >= 0 },
                 )
             }
-            composable(Routes.TRANSFER, arguments = listOf(navArgument("from") { type = NavType.LongType; defaultValue = -1L })) {
+            screen(Routes.TRANSFER, arguments = listOf(navArgument("from") { type = NavType.LongType; defaultValue = -1L })) {
                 TransferScreen(nav, it.arguments!!.getLong("from").takeIf { id -> id >= 0 })
             }
-            composable(Routes.SNAPSHOT, arguments = listOf(navArgument("id") { type = NavType.LongType })) {
+            screen(Routes.SNAPSHOT, arguments = listOf(navArgument("id") { type = NavType.LongType })) {
                 SnapshotScreen(nav, it.arguments!!.getLong("id"))
             }
-            composable(
+            screen(
                 Routes.COMPARE,
                 arguments = listOf(navArgument("a") { type = NavType.LongType }, navArgument("b") { type = NavType.LongType }),
             ) { CompareScreen(nav, it.arguments!!.getLong("a"), it.arguments!!.getLong("b")) }
-            composable(Routes.RATES) { RatesScreen(nav) }
-            composable(Routes.GROUPS) { GroupsScreen(nav) }
-            composable(Routes.BACKUP) { BackupScreen(nav) }
-            composable(Routes.ICONS) { IconCacheScreen(nav) }
-            composable(Routes.ABOUT) { AboutScreen(nav) }
+            screen(Routes.RATES) { RatesScreen(nav) }
+            screen(Routes.GROUPS) { GroupsScreen(nav) }
+            screen(Routes.BACKUP) { BackupScreen(nav) }
+            screen(Routes.ICONS) { IconCacheScreen(nav) }
+            screen(Routes.ABOUT) { AboutScreen(nav) }
         }
-        // Tab pages draw edge to edge; keep scrolled content from running under the status bar.
+        // Tab pages draw edge to edge; fade scrolled content out under the status bar.
         if (showBar) {
             Spacer(
                 Modifier.fillMaxWidth()
                     .windowInsetsTopHeight(WindowInsets.statusBars)
-                    .background(LocalYujiColors.current.Background.copy(alpha = 0.96f)),
+                    .background(Brush.verticalGradient(listOf(c.Background.copy(alpha = 0.82f), c.Background.copy(alpha = 0.45f)))),
             )
         }
     }
@@ -207,3 +220,11 @@ private fun AnimatedContentTransitionScope<androidx.navigation.NavBackStackEntry
     return tabs.any { it.route == from } && tabs.any { it.route == to }
 }
 
+/** Every destination draws the ambient background itself, so screens stay opaque during transitions. */
+private fun NavGraphBuilder.screen(
+    route: String,
+    arguments: List<NamedNavArgument> = emptyList(),
+    content: @Composable (NavBackStackEntry) -> Unit,
+) = composable(route, arguments) { entry ->
+    Box(Modifier.fillMaxSize().ambientBackground()) { content(entry) }
+}

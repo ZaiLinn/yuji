@@ -1,9 +1,9 @@
 package com.yuji.app.data.settings
 
+import com.yuji.app.ui.theme.ThemeMode
 import android.content.Context
 import android.content.SharedPreferences
 import com.yuji.app.domain.PendingSnapshotFlag
-import com.yuji.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

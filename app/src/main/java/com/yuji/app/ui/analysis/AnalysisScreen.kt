@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DonutLarge
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +48,9 @@ import com.yuji.app.ui.components.NativeAmountText
 import com.yuji.app.ui.components.SectionHeader
 import com.yuji.app.ui.components.Slice
 import com.yuji.app.ui.components.YujiCard
+import com.yuji.app.ui.components.PageTitle
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.nav.Routes
 import com.yuji.app.ui.theme.Amount
@@ -80,7 +82,7 @@ fun AnalysisScreen(nav: NavController) {
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Text("资产分析", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 6.dp)) }
+        item { PageTitle("资产分析", Modifier.padding(vertical = 6.dp)) }
 
         if (counted.none { it.valueCny!!.signum() > 0 }) {
             item { EmptyState(Icons.Rounded.DonutLarge, "暂无可分析的资产", "添加账户并填写余额后，这里会显示资产结构。") }
@@ -120,7 +122,7 @@ fun AnalysisScreen(nav: NavController) {
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                HorizontalDivider(color = LocalYujiColors.current.Outline)
                 byCurrency.forEach { (cur, value, native) ->
                     Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -153,7 +155,7 @@ fun AnalysisScreen(nav: NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(g.group.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                             CnyText(g.totalCny, MaterialTheme.typography.bodyMedium, color = LocalYujiColors.current.TextMuted)
-                            Text("  " + Money.percent(g.totalCny, assets), style = MaterialTheme.typography.bodyMedium, color = LocalYujiColors.current.Mint)
+                            Text("  " + Money.percent(g.totalCny, assets), style = MaterialTheme.typography.bodyMedium, color = LocalYujiColors.current.AccentText)
                         }
                         Spacer(Modifier.height(6.dp))
                         Bar(fraction(g.totalCny, max), palette[i % palette.size])
@@ -168,7 +170,7 @@ fun AnalysisScreen(nav: NavController) {
         item {
             YujiCard(padding = PaddingValues(vertical = 4.dp)) {
                 top.forEachIndexed { i, v ->
-                    if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                    if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                     Row(
                         Modifier.fillMaxWidth().clickable { nav.navigate(Routes.account(v.account.id)) }.padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -180,7 +182,7 @@ fun AnalysisScreen(nav: NavController) {
                             Text(v.account.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             CnyText(v.valueCny, Amount.small, color = LocalYujiColors.current.TextFaint)
                         }
-                        Text(Money.percent(v.valueCny!!, assets), style = MaterialTheme.typography.titleSmall, color = LocalYujiColors.current.Mint)
+                        Text(Money.percent(v.valueCny!!, assets), style = MaterialTheme.typography.titleSmall, color = LocalYujiColors.current.AccentText)
                     }
                 }
             }
@@ -193,7 +195,7 @@ fun AnalysisScreen(nav: NavController) {
             item {
                 YujiCard(padding = PaddingValues(vertical = 4.dp)) {
                     debts.forEachIndexed { i, v ->
-                        if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                        if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                             AccountIcon(v.account.iconType, v.account.iconValue, v.account.name, size = 32.dp)
                             Spacer(Modifier.width(12.dp))
@@ -254,7 +256,7 @@ private fun FxImpactCard(
                 DeltaText(impact, Amount.row)
             }
         }
-        HorizontalDivider(Modifier.padding(top = 12.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+        HorizontalDivider(Modifier.padding(top = 12.dp), color = LocalYujiColors.current.Outline)
         Row(Modifier.fillMaxWidth().padding(top = 12.dp)) {
             Text("合计", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             DeltaText(rows.fold(BigDecimal.ZERO) { s, r -> s + r.third }, Amount.row)
@@ -264,7 +266,12 @@ private fun FxImpactCard(
 
 @Composable
 private fun StatPill(label: String, value: String, modifier: Modifier) {
-    Column(modifier.clip(RoundedCornerShape(12.dp)).background(LocalYujiColors.current.CardHigh).padding(horizontal = 10.dp, vertical = 8.dp)) {
+    val shape = MaterialTheme.shapes.medium
+    Column(
+        modifier.clip(shape).background(LocalYujiColors.current.Muted)
+            .border(1.dp, LocalYujiColors.current.Outline, shape)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextMuted)
         Text(value, style = MaterialTheme.typography.titleSmall)
     }
@@ -272,8 +279,11 @@ private fun StatPill(label: String, value: String, modifier: Modifier) {
 
 @Composable
 private fun Bar(fraction: Float, color: Color) {
-    Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(LocalYujiColors.current.CardHigh)) {
-        Box(Modifier.fillMaxWidth(fraction.coerceIn(0.02f, 1f)).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(color))
+    Box(Modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(LocalYujiColors.current.Muted)) {
+        Box(
+            Modifier.fillMaxWidth(fraction.coerceIn(0.02f, 1f)).fillMaxHeight().clip(CircleShape)
+                .background(Brush.horizontalGradient(listOf(color.copy(alpha = 0.55f), color))),
+        )
     }
 }
 

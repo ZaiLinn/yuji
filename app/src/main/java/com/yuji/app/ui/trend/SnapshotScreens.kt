@@ -1,5 +1,6 @@
 package com.yuji.app.ui.trend
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material3.AlertDialog
@@ -49,7 +49,6 @@ import com.yuji.app.ui.components.YujiTopBar
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
@@ -64,7 +63,7 @@ fun SnapshotScreen(nav: NavController, id: Long) {
     val s = snapshot
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = {
             YujiTopBar("快照详情", onBack = { nav.popBackStack() }) {
                 IconButton(onClick = { deleting = true }) { Icon(Icons.Rounded.DeleteOutline, contentDescription = "删除快照") }
@@ -88,7 +87,7 @@ fun SnapshotScreen(nav: NavController, id: Long) {
                 YujiCard(onClick = { editNote = true }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("备注", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                        Text(if (s.note.isBlank()) "添加" else "编辑", style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.Mint)
+                        Text(if (s.note.isBlank()) "添加" else "编辑", style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.AccentText)
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -105,7 +104,7 @@ fun SnapshotScreen(nav: NavController, id: Long) {
                 item {
                     YujiCard(padding = PaddingValues(vertical = 4.dp)) {
                         items.sortedByDescending { it.valueCny }.forEachIndexed { i, it ->
-                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                             SnapshotItemRow(it)
                         }
                     }
@@ -121,7 +120,7 @@ fun SnapshotScreen(nav: NavController, id: Long) {
             containerColor = LocalYujiColors.current.CardHigh,
             title = { Text("快照备注") },
             text = {
-                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth())
             },
             confirmButton = {
                 TextButton(onClick = { scope.launch { c.repository.updateSnapshotNote(id, text.trim()) }; editNote = false }) { Text("保存") }
@@ -179,7 +178,7 @@ fun CompareScreen(nav: NavController, a: Long, b: Long) {
         }.filter { it.delta.abs() >= BigDecimal("0.005") }.sortedByDescending { it.delta.abs() }
     }
 
-    Scaffold(containerColor = LocalYujiColors.current.Background, topBar = { YujiTopBar("快照对比", onBack = { nav.popBackStack() }) }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { YujiTopBar("快照对比", onBack = { nav.popBackStack() }) }) { padding ->
         if (first == null || second == null) return@Scaffold
         LazyColumn(
             Modifier.padding(padding),
@@ -216,7 +215,7 @@ fun CompareScreen(nav: NavController, a: Long, b: Long) {
                 else -> item {
                     YujiCard(padding = PaddingValues(vertical = 4.dp)) {
                         list.forEachIndexed { i, r ->
-                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text(r.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)

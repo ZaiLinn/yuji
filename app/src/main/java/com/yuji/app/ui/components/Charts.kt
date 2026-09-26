@@ -31,10 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yuji.app.ui.theme.Inter
 import com.yuji.app.ui.theme.LocalHideAmounts
 import com.yuji.app.ui.theme.TNUM
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -59,10 +59,12 @@ fun LineChart(
     val hidden = LocalHideAmounts.current
     var selected by remember(points) { mutableStateOf<Int?>(null) }
     val yc = LocalYujiColors.current
-    val effectiveColor = if (color == Color.Unspecified) yc.Mint else color
-    val labelStyle = TextStyle(color = yc.TextFaint, fontSize = 10.sp, fontFeatureSettings = TNUM)
-    val tipStyle = TextStyle(color = yc.Text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = TNUM)
-    val tipSub = TextStyle(color = yc.TextMuted, fontSize = 10.sp)
+    val effectiveColor = if (color == Color.Unspecified) yc.AccentText else color
+    // Default line: accent deepening into its lighter text tone, left to right.
+    val lineStart = if (color == Color.Unspecified) yc.Accent else color
+    val labelStyle = TextStyle(color = yc.TextFaint, fontFamily = Inter, fontSize = 10.sp, fontFeatureSettings = TNUM)
+    val tipStyle = TextStyle(color = yc.Text, fontFamily = Inter, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = TNUM)
+    val tipSub = TextStyle(color = yc.TextMuted, fontFamily = Inter, fontSize = 10.sp)
 
     Canvas(
         modifier.then(
@@ -129,20 +131,25 @@ fun LineChart(
             lineTo(x(0), bottom)
             close()
         }
-        drawPath(fill, Brush.verticalGradient(listOf(effectiveColor.copy(alpha = 0.28f), effectiveColor.copy(alpha = 0f)), startY = top, endY = bottom))
-        drawPath(line, effectiveColor, style = Stroke(width = (if (axes) 2.5 else 2.0).dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(fill, Brush.verticalGradient(listOf(lineStart.copy(alpha = 0.30f), lineStart.copy(alpha = 0f)), startY = top, endY = bottom))
+        val lineBrush = Brush.horizontalGradient(listOf(lineStart, effectiveColor), startX = left, endX = right)
+        val width = (if (axes) 2.5 else 2.0).dp.toPx()
+        // Soft glow: the same path, wide and faint, under the crisp line.
+        drawPath(line, lineBrush, alpha = 0.18f, style = Stroke(width = width * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(line, lineBrush, style = Stroke(width = width, cap = StrokeCap.Round, join = StrokeJoin.Round))
 
         val sel = selected
         if (sel != null) {
             val sx = x(sel)
             val sy = y(points[sel].v)
             drawLine(yc.TextMuted.copy(alpha = 0.5f), Offset(sx, top), Offset(sx, bottom), strokeWidth = 1.dp.toPx())
+            drawCircle(effectiveColor.copy(alpha = 0.22f), 11.dp.toPx(), Offset(sx, sy))
             drawCircle(yc.Background, 6.dp.toPx(), Offset(sx, sy))
             drawCircle(effectiveColor, 4.dp.toPx(), Offset(sx, sy))
             tooltip(
                 measurer.measure(if (hidden) MASK else valueLabel(points[sel].v), tipStyle),
                 measurer.measure(dateLabel(points[sel].t), tipSub),
-                sx, top, left, right, yc.CardHigh,
+                sx, top, left, right, yc.CardHigh, yc.OutlineStrong,
             )
         } else if (!axes) {
             drawCircle(effectiveColor, 3.dp.toPx(), Offset(x(points.lastIndex), y(points.last().v)))
@@ -153,13 +160,14 @@ fun LineChart(
 private fun DrawScope.tooltip(
     main: androidx.compose.ui.text.TextLayoutResult,
     sub: androidx.compose.ui.text.TextLayoutResult,
-    cx: Float, top: Float, left: Float, right: Float, cardHighColor: Color,
+    cx: Float, top: Float, left: Float, right: Float, cardHighColor: Color, borderColor: Color,
 ) {
     val pad = 8.dp.toPx()
     val w = max(main.size.width, sub.size.width) + pad * 2
     val h = main.size.height + sub.size.height + pad * 1.5f
     val x = (cx - w / 2).coerceIn(left, right - w)
-    drawRoundRect(cardHighColor, Offset(x, top), Size(w, h), CornerRadius(10.dp.toPx()))
+    drawRoundRect(cardHighColor, Offset(x, top), Size(w, h), CornerRadius(8.dp.toPx()))
+    drawRoundRect(borderColor, Offset(x, top), Size(w, h), CornerRadius(8.dp.toPx()), style = Stroke(1f))
     drawText(sub, topLeft = Offset(x + pad, top + pad * 0.6f))
     drawText(main, topLeft = Offset(x + pad, top + pad * 0.6f + sub.size.height))
 }
@@ -192,7 +200,7 @@ fun DonutChart(slices: List<Slice>, modifier: Modifier = Modifier, center: @Comp
             val arcSize = Size(size.minDimension - stroke, size.minDimension - stroke)
             val topLeft = Offset((size.width - arcSize.width) / 2, (size.height - arcSize.height) / 2)
             if (total <= 0) {
-                drawArc(yc.CardHigh, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
+                drawArc(yc.Muted, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
                 return@Canvas
             }
             val gap = if (slices.size > 1) 2.5f else 0f

@@ -1,6 +1,9 @@
 package com.yuji.app.ui.transfer
 
-import androidx.compose.foundation.background
+import com.yuji.app.ui.components.CardVariant
+import com.yuji.app.ui.components.bottomBarSurface
+import com.yuji.app.ui.components.inputWell
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -39,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,7 +59,6 @@ import com.yuji.app.ui.components.YujiTopBar
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.MathContext
@@ -103,11 +103,11 @@ fun TransferScreen(nav: NavController, presetFrom: Long?) {
         out != null && out.signum() > 0 && received != null && received.signum() > 0 && fee != null && fee.signum() >= 0
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = { YujiTopBar("资产转移", onBack = { nav.popBackStack() }) },
         bottomBar = {
             if (accounts.size >= 2) {
-                Column(Modifier.background(LocalYujiColors.current.Background).navigationBarsPadding().imePadding().padding(16.dp)) {
+                Column(Modifier.bottomBarSurface().navigationBarsPadding().imePadding().padding(16.dp)) {
                     error?.let { Text(it, color = LocalYujiColors.current.Coral, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp)) }
                     PrimaryButton("确认转移", enabled = valid && !saving, onClick = {
                         saving = true
@@ -139,7 +139,7 @@ fun TransferScreen(nav: NavController, presetFrom: Long?) {
                 AmountField(outText, { outText = it }, "转出金额", from?.account?.currency)
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     IconButton(onClick = { val t = fromId; fromId = toId; toId = t; inTouched = false }) {
-                        Icon(Icons.Rounded.ArrowDownward, contentDescription = "交换", tint = LocalYujiColors.current.Mint)
+                        Icon(Icons.Rounded.ArrowDownward, contentDescription = "交换", tint = LocalYujiColors.current.AccentText)
                     }
                 }
                 AccountSelector("转入", to) { picking = "to" }
@@ -156,11 +156,11 @@ fun TransferScreen(nav: NavController, presetFrom: Long?) {
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
                     value = note, onValueChange = { note = it }, label = { Text("备注（可选）") }, singleLine = true,
-                    shape = RoundedCornerShape(14.dp), colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium, colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
                 )
             }
             if (valid) {
-                YujiCard(color = LocalYujiColors.current.CardHigh) {
+                YujiCard(variant = CardVariant.Raised) {
                     Text("转移后", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
                     Spacer(Modifier.height(8.dp))
                     PreviewRow(from!!.account.name, from.account.balance - out!! - fee!!, from.account.currency)
@@ -184,7 +184,7 @@ fun TransferScreen(nav: NavController, presetFrom: Long?) {
 @Composable
 private fun AccountSelector(label: String, value: AccountValue?, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(LocalYujiColors.current.CardHigh).clickable(onClick = onClick).padding(12.dp),
+        Modifier.fillMaxWidth().inputWell().clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (value != null) AccountIcon(value.account.iconType, value.account.iconValue, value.account.name, size = 36.dp)
@@ -205,7 +205,7 @@ private fun AmountField(value: String, onChange: (String) -> Unit, label: String
         suffix = { currency?.let { Text(it) } },
         isError = value.isNotBlank() && Money.parse(value) == null,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        textStyle = Amount.row, shape = RoundedCornerShape(14.dp), colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
+        textStyle = Amount.row, shape = MaterialTheme.shapes.medium, colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
     )
 }
 

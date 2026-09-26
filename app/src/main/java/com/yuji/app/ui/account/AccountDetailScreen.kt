@@ -1,5 +1,8 @@
 package com.yuji.app.ui.account
 
+import com.yuji.app.ui.components.SecondaryButton
+import com.yuji.app.ui.theme.LocalTrend
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,15 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,7 +44,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.yuji.app.data.db.TransferEntity
 import com.yuji.app.domain.Currency
 import com.yuji.app.domain.Money
 import com.yuji.app.ui.Format
@@ -62,9 +61,7 @@ import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.nav.Routes
 import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalHideAmounts
-import com.yuji.app.ui.theme.LocalTrend
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
@@ -86,7 +83,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
     val group = portfolio.groups.firstOrNull { it.group.id == a.groupId }?.group?.name.orEmpty()
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = {
             YujiTopBar(a.name, onBack = { nav.popBackStack() }) {
                 IconButton(onClick = { nav.navigate(Routes.edit(id)) }) { Icon(Icons.Rounded.Edit, contentDescription = "编辑") }
@@ -137,16 +134,8 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                     }
                     Spacer(Modifier.height(18.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        FilledTonalButton(onClick = { updating = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
-                            Icon(Icons.Rounded.EditNote, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("更新余额")
-                        }
-                        FilledTonalButton(onClick = { nav.navigate(Routes.transfer(id)) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
-                            Icon(Icons.Rounded.SwapHoriz, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("转移")
-                        }
+                        SecondaryButton("更新余额", onClick = { updating = true }, modifier = Modifier.weight(1f), icon = Icons.Rounded.EditNote)
+                        SecondaryButton("转移", onClick = { nav.navigate(Routes.transfer(id)) }, modifier = Modifier.weight(1f), icon = Icons.Rounded.SwapHoriz)
                     }
                 }
             }
@@ -176,7 +165,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                         rows.forEachIndexed { i, h ->
                             val prev = rows.getOrNull(i + 1)?.balance
                             val delta = prev?.let { h.balance - it }
-                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(Format.dateTime(h.at), style = MaterialTheme.typography.bodySmall, color = LocalYujiColors.current.TextMuted, modifier = Modifier.weight(1f))
                                 Column(horizontalAlignment = Alignment.End) {
@@ -204,7 +193,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                             val otherName = otherId?.let { portfolio.account(it)?.account?.name } ?: "已删除账户"
                             val amount = if (isOut) t.outAmount else t.inAmount
                             val currency = if (isOut) a.currency else portfolio.account(otherId ?: -1L)?.account?.currency ?: a.currency
-                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                            if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                             Row(
                                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -223,7 +212,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                                 }
                                 NativeAmountText(
                                     amount, currency, Amount.row,
-                                    color = if (isOut) LocalYujiColors.current.Coral else LocalYujiColors.current.Mint,
+                                    color = LocalTrend.current.of(if (isOut) -1 else 1),
                                 )
                             }
                         }
@@ -278,7 +267,7 @@ fun BalanceDialog(initial: BigDecimal, currency: String, onDismiss: () -> Unit, 
                 singleLine = true,
                 isError = value == null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.medium,
                 textStyle = Amount.row,
                 modifier = Modifier.focusRequester(focusRequester),
             )

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,8 +28,6 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,12 +63,19 @@ import com.yuji.app.ui.components.DeltaText
 import com.yuji.app.ui.components.EmptyState
 import com.yuji.app.ui.components.LineChart
 import com.yuji.app.ui.components.YujiCard
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.ui.graphics.Color
+import com.yuji.app.ui.components.PageTitle
+import com.yuji.app.ui.components.SectionLabel
+import com.yuji.app.ui.components.YujiChip
+import com.yuji.app.ui.components.accentGlow
+import com.yuji.app.ui.components.segmentBorder
+import com.yuji.app.ui.theme.YujiType
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.nav.Routes
 import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalTrend
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.util.Calendar
@@ -101,7 +105,7 @@ fun reasonLabel(reason: String): String = when (reason) {
     else -> "历史记录"
 }
 
-private val ROW_R = 20.dp
+private val ROW_R = 16.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -131,33 +135,21 @@ fun TrendScreen(nav: NavController) {
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
                 bottom = 96.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("资产趋势", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    PageTitle("资产趋势", Modifier.weight(1f))
                     if (snapshots.size >= 2) {
                         TextButton(onClick = { selecting = !selecting; selected = emptyList() }) {
-                            Text(if (selecting) "取消" else "对比", color = LocalYujiColors.current.Mint)
+                            Text(if (selecting) "取消" else "对比", color = LocalYujiColors.current.AccentText)
                         }
                     }
                 }
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Range.entries.forEach { r ->
-                        FilterChip(
-                            selected = r == range,
-                            onClick = { range = r },
-                            label = { Text(r.label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = LocalYujiColors.current.Mint.copy(alpha = 0.16f),
-                                selectedLabelColor = LocalYujiColors.current.Mint,
-                                containerColor = LocalYujiColors.current.Card,
-                                labelColor = LocalYujiColors.current.TextMuted,
-                            ),
-                            border = null,
-                        )
+                        YujiChip(r.label, selected = r == range, onClick = { range = r })
                     }
                 }
             }
@@ -170,7 +162,7 @@ fun TrendScreen(nav: NavController) {
                             "这个时间范围内至少需要 2 次资产快照。每次更新余额都会自动记录一次。",
                         )
                     } else {
-                        Text("区间变化", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
+                        Text("区间变化", style = YujiType.tag, color = LocalYujiColors.current.TextMuted)
                         Row(verticalAlignment = Alignment.Bottom) {
                             DeltaText(change, Amount.large)
                             if (first != null && first.totalCny.signum() > 0 && change != null) {
@@ -200,7 +192,7 @@ fun TrendScreen(nav: NavController) {
                 item {
                     Text(
                         "选择两条快照进行对比（已选 ${selected.size}/2）",
-                        style = MaterialTheme.typography.bodySmall, color = LocalYujiColors.current.Mint, modifier = Modifier.padding(start = 4.dp),
+                        style = MaterialTheme.typography.bodySmall, color = LocalYujiColors.current.AccentText, modifier = Modifier.padding(start = 4.dp, top = 12.dp),
                     )
                 }
             }
@@ -208,7 +200,7 @@ fun TrendScreen(nav: NavController) {
             val byMonth = inRange.asReversed().groupBy { Format.yearMonth(it.createdAt) }
             byMonth.forEach { (month, list) ->
                 item(key = "h-$month") {
-                    Text(month, style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.TextMuted, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
+                    SectionLabel(month, Modifier.padding(top = 20.dp, bottom = 8.dp))
                 }
                 list.forEachIndexed { i, s ->
                     item(key = s.id) {
@@ -220,22 +212,24 @@ fun TrendScreen(nav: NavController) {
                             isLast -> RoundedCornerShape(bottomStart = ROW_R, bottomEnd = ROW_R)
                             else -> RectangleShape
                         }
-                        SwipeToDismissBox(
-                            state = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart && !selecting) {
-                                        confirmDeleteId = s.id
-                                    }
-                                    false
+                        val swipe = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart && !selecting) {
+                                    confirmDeleteId = s.id
                                 }
-                            ),
+                                false
+                            }
+                        )
+                        SwipeToDismissBox(
+                            state = swipe,
                             enableDismissFromStartToEnd = false,
                             enableDismissFromEndToStart = !selecting,
-                            backgroundContent = {
+                            backgroundContent = bg@{
+                                if (swipe.dismissDirection == SwipeToDismissBoxValue.Settled) return@bg
                                 Box(
                                     Modifier
                                         .fillMaxSize()
-                                        .background(LocalYujiColors.current.Coral.copy(alpha = 0.12f), shape)
+                                        .background(LocalYujiColors.current.Coral.copy(alpha = 0.16f), shape)
                                         .padding(end = 20.dp),
                                     contentAlignment = Alignment.CenterEnd,
                                 ) {
@@ -243,11 +237,15 @@ fun TrendScreen(nav: NavController) {
                                 }
                             },
                         ) {
-                            Surface(color = LocalYujiColors.current.Card, shape = shape) {
+                            Surface(
+                                color = LocalYujiColors.current.Surface,
+                                shape = shape,
+                                modifier = Modifier.segmentBorder(isFirst, isLast, ROW_R, LocalYujiColors.current.Outline),
+                            ) {
                                 Column {
                                     if (!isFirst) HorizontalDivider(
                                         Modifier.padding(horizontal = 16.dp),
-                                        color = LocalYujiColors.current.Outline.copy(alpha = 0.5f),
+                                        color = LocalYujiColors.current.Outline,
                                     )
                                     SnapshotRow(
                                         s = s,
@@ -296,9 +294,10 @@ fun TrendScreen(nav: NavController) {
                 },
                 icon = { Icon(Icons.Rounded.CompareArrows, contentDescription = null) },
                 text = { Text("对比所选快照") },
-                containerColor = LocalYujiColors.current.Mint,
-                contentColor = LocalYujiColors.current.Background,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                containerColor = LocalYujiColors.current.Accent,
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp).accentGlow(MaterialTheme.shapes.large),
             )
         }
     }
@@ -314,11 +313,11 @@ private fun SnapshotRow(s: SnapshotEntity, previous: SnapshotEntity?, selecting:
             Icon(
                 if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
                 contentDescription = null,
-                tint = if (selected) LocalYujiColors.current.Mint else LocalYujiColors.current.TextFaint,
+                tint = if (selected) LocalYujiColors.current.AccentText else LocalYujiColors.current.TextFaint,
             )
             Spacer(Modifier.width(12.dp))
         } else {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(LocalYujiColors.current.Mint.copy(alpha = 0.6f)))
+            Box(Modifier.size(6.dp).clip(CircleShape).background(LocalYujiColors.current.AccentText.copy(alpha = 0.7f)))
             Spacer(Modifier.width(14.dp))
         }
         Column(Modifier.weight(1f)) {

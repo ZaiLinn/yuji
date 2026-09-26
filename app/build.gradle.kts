@@ -21,8 +21,8 @@ android {
         applicationId = "com.yuji.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 108
-        versionName = "10.8"
+        versionCode = 112
+        versionName = "11.2"
     }
 
     signingConfigs {

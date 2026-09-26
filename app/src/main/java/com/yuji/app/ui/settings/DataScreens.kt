@@ -1,6 +1,7 @@
 package com.yuji.app.ui.settings
 
-import android.content.Context
+import com.yuji.app.ui.components.SecondaryButton
+import androidx.compose.ui.graphics.Color
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,12 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -53,7 +52,6 @@ import com.yuji.app.ui.components.YujiCard
 import com.yuji.app.ui.components.YujiTopBar
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 
 @Composable
@@ -67,7 +65,7 @@ fun RatesScreen(nav: NavController) {
     val latest = portfolio.rates.values.filter { it.currency != Currency.BASE && it.source == RateSource.AUTO }.maxOfOrNull { it.updatedAt }
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = { YujiTopBar("汇率", onBack = { nav.popBackStack() }) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -102,7 +100,7 @@ fun RatesScreen(nav: NavController) {
             item {
                 YujiCard(padding = PaddingValues(vertical = 4.dp)) {
                     Currency.entries.filter { it.code != Currency.BASE }.forEachIndexed { i, cur ->
-                        if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                        if (i > 0) HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = LocalYujiColors.current.Outline)
                         val r = portfolio.rates[cur.code]
                         val rate = portfolio.rateOf(cur.code)
                         Row(
@@ -145,7 +143,7 @@ fun RatesScreen(nav: NavController) {
                 Column {
                     OutlinedTextField(
                         value = text, onValueChange = { text = it }, singleLine = true, prefix = { Text("¥ ") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(14.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = MaterialTheme.shapes.medium,
                     )
                     Spacer(Modifier.height(8.dp))
                     Text("手动汇率会一直使用，直到你恢复自动。", style = MaterialTheme.typography.bodySmall, color = LocalYujiColors.current.TextMuted)
@@ -219,7 +217,7 @@ fun BackupScreen(nav: NavController) {
     }
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = { YujiTopBar("备份与恢复", onBack = { nav.popBackStack() }) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -234,21 +232,15 @@ fun BackupScreen(nav: NavController) {
                 )
             }
             PrimaryButton(if (busy) "处理中…" else "导出备份", enabled = !busy, onClick = { exporter.launch(c.backup.suggestedFileName()) })
-            OutlinedButton(
-                onClick = { importer.launch(arrayOf("*/*")) },
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) { Text("从备份恢复") }
-            OutlinedButton(
+            SecondaryButton("从备份恢复", onClick = { importer.launch(arrayOf("*/*")) }, enabled = !busy)
+            SecondaryButton(
+                "导出余额历史 CSV",
                 onClick = {
                     val ts = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())
                     csvExporter.launch("Yuji_$ts.csv")
                 },
                 enabled = !busy,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) { Text("导出余额历史 CSV") }
+            )
         }
     }
 
@@ -294,7 +286,7 @@ fun IconCacheScreen(nav: NavController) {
     val unused = remember(referenced, refresh) { c.icons.unused(referenced) }
     val size = remember(refresh, referenced) { c.icons.totalSize() }
 
-    Scaffold(containerColor = LocalYujiColors.current.Background, topBar = { YujiTopBar("图标缓存", onBack = { nav.popBackStack() }) }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { YujiTopBar("图标缓存", onBack = { nav.popBackStack() }) }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             YujiCard {
                 Text("占用空间", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
@@ -320,7 +312,7 @@ private fun bytes(n: Long): String = when {
 
 @Composable
 fun AboutScreen(nav: NavController) {
-    Scaffold(containerColor = LocalYujiColors.current.Background, topBar = { YujiTopBar("关于余记", onBack = { nav.popBackStack() }) }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { YujiTopBar("关于余记", onBack = { nav.popBackStack() }) }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             YujiCard {
                 Text("余记", style = MaterialTheme.typography.titleLarge)

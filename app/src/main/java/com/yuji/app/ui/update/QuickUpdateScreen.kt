@@ -1,6 +1,9 @@
 package com.yuji.app.ui.update
 
-import androidx.compose.foundation.background
+import com.yuji.app.ui.components.YujiChip
+import com.yuji.app.ui.components.bottomBarSurface
+import com.yuji.app.ui.components.inputWell
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,14 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,7 +35,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
@@ -63,7 +62,6 @@ import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalHideAmounts
 import com.yuji.app.ui.theme.LocalTrend
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 
 @Composable
@@ -93,12 +91,12 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
     val changed = visible.count { v -> parsed[v.account.id]?.let { it.compareTo(v.account.balance) != 0 } == true }
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = { YujiTopBar("更新余额", onBack = { nav.popBackStack() }) },
         bottomBar = {
             Column(
                 Modifier
-                    .background(LocalYujiColors.current.Background)
+                    .bottomBarSurface()
                     .navigationBarsPadding()
                     .imePadding()
                     .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -136,16 +134,8 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
         ) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = !overdueOnly, onClick = { overdueOnly = false },
-                        label = { Text("全部 ${order.size}") },
-                        colors = chipColors(),
-                    )
-                    FilterChip(
-                        selected = overdueOnly, onClick = { overdueOnly = true },
-                        label = { Text("超过 $OVERDUE_DAYS 天未更新") },
-                        colors = chipColors(),
-                    )
+                    YujiChip("全部 ${order.size}", selected = !overdueOnly, onClick = { overdueOnly = false })
+                    YujiChip("超过 $OVERDUE_DAYS 天未更新", selected = overdueOnly, onClick = { overdueOnly = true })
                 }
             }
             if (visible.isEmpty()) {
@@ -180,7 +170,7 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
                                 onValueChange = { v -> inputs[a.id] = v.copy(text = v.text.replace(MASK, "")) },
                                 singleLine = true,
                                 textStyle = Amount.row.copy(color = LocalYujiColors.current.Text, textAlign = TextAlign.End),
-                                cursorBrush = SolidColor(LocalYujiColors.current.Mint),
+                                cursorBrush = SolidColor(LocalYujiColors.current.AccentText),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                                 keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
                                 modifier = Modifier
@@ -193,8 +183,7 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
                                         }
                                     }
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(LocalYujiColors.current.CardHigh)
+                                    .inputWell()
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
                             )
                             Spacer(Modifier.height(4.dp))
@@ -216,10 +205,3 @@ fun QuickUpdateScreen(nav: NavController, overdueOnlyInitially: Boolean) {
     }
 }
 
-@Composable
-private fun chipColors() = FilterChipDefaults.filterChipColors(
-    selectedContainerColor = LocalYujiColors.current.Mint.copy(alpha = 0.16f),
-    selectedLabelColor = LocalYujiColors.current.Mint,
-    labelColor = LocalYujiColors.current.TextMuted,
-    containerColor = LocalYujiColors.current.Card,
-)

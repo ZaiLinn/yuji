@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Source: design/icon/adaptive-foreground.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M37.54,43.77L52.54,32.97A2.5,2.5 0,0 1,55.46 32.97L70.46,43.77A2.5,2.5 0,0 1,67.54 47.83L54,38.08L40.46,47.83A2.5,2.5 0,0 1,37.54 43.77Z M41.5,53.3H66.5A2.5,2.5 0,0 1,66.5 58.3H41.5A2.5,2.5 0,0 1,41.5 53.3Z M47.5,61.9H60.5A2.5,2.5 0,0 1,60.5 66.9H47.5A2.5,2.5 0,0 1,47.5 61.9Z M44,70.5H64A2.5,2.5 0,0 1,64 75.5H44A2.5,2.5 0,0 1,44 70.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="32.5" android:endX="54" android:endY="75.5">
+                <item android:offset="0" android:color="#FFFFFFFF" />
+                <item android:offset="1" android:color="#FFDCE6FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

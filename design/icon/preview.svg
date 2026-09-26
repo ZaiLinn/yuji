@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="canvas" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0052FF"/>
+      <stop offset="1" stop-color="#4D7CFF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="284" cy="228" r="569" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="512" y1="206.22" x2="512" y2="817.78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DCE6FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="url(#canvas)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="url(#glow)"/>
+  <path d="M277.89 366.52L491.22 212.92A35.56 35.56 0 0 1 532.78 212.92L746.11 366.52A35.56 35.56 0 0 1 704.56 424.23L512 285.59L319.44 424.23A35.56 35.56 0 0 1 277.89 366.52Z" fill="url(#mark)"/>
+  <rect x="298.67" y="502.04" width="426.67" height="71.11" rx="35.56" ry="35.56" fill="url(#mark)"/>
+  <rect x="384" y="624.36" width="256" height="71.11" rx="35.56" ry="35.56" fill="url(#mark)"/>
+  <rect x="334.22" y="746.67" width="355.56" height="71.11" rx="35.56" ry="35.56" fill="url(#mark)"/>
+</svg>

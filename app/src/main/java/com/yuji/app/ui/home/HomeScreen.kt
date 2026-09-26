@@ -94,12 +94,19 @@ import com.yuji.app.ui.components.EmptyState
 import com.yuji.app.ui.components.LineChart
 import com.yuji.app.ui.components.NativeAmountText
 import com.yuji.app.ui.components.YujiCard
+import androidx.compose.foundation.border
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.ui.graphics.Color
+import com.yuji.app.ui.components.CardVariant
+import com.yuji.app.ui.components.PageTitle
+import com.yuji.app.ui.components.accentGlow
+import com.yuji.app.ui.components.segmentBorder
+import com.yuji.app.ui.theme.YujiType
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.nav.Routes
 import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalHideAmounts
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -183,7 +190,7 @@ fun HomeScreen(nav: NavController) {
         ) {
             item {
                 Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("余记", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                    PageTitle("余记", Modifier.weight(1f), brand = true)
                     IconButton(onClick = { c.settings.setHideAmounts(!settings.hideAmounts) }) {
                         Icon(
                             if (settings.hideAmounts) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
@@ -227,7 +234,7 @@ fun HomeScreen(nav: NavController) {
                         placeholder = { Text("搜索账户名称、备注、币种") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = MaterialTheme.shapes.medium,
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) IconButton(onClick = { searchQuery = "" }) {
                                 Icon(Icons.Rounded.Close, contentDescription = "清除", tint = LocalYujiColors.current.TextMuted)
@@ -261,10 +268,11 @@ fun HomeScreen(nav: NavController) {
                 item {
                     Banner(
                         "$overdue 个账户超过 $OVERDUE_DAYS 天未更新",
-                        LocalYujiColors.current.Mint,
+                        LocalYujiColors.current.AccentText,
                         Modifier.padding(bottom = 12.dp),
                         onClick = { nav.navigate(Routes.update(overdueOnly = true)) },
                         trailing = "去更新",
+                        pulse = true,
                     )
                 }
             }
@@ -361,9 +369,10 @@ fun HomeScreen(nav: NavController) {
                 onClick = { nav.navigate(Routes.update()) },
                 icon = { Icon(Icons.Rounded.EditNote, contentDescription = null) },
                 text = { Text("更新余额") },
-                containerColor = LocalYujiColors.current.Mint,
-                contentColor = LocalYujiColors.current.Background,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                containerColor = LocalYujiColors.current.Accent,
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp).accentGlow(MaterialTheme.shapes.large),
             )
         }
     }
@@ -414,10 +423,10 @@ private fun HeroCard(
     val recent = snapshots.filter { it.createdAt >= now - 90 * DAY }
         .map { ChartPoint(it.createdAt, it.totalCny.toDouble()) } + ChartPoint(now, total.toDouble())
 
-    YujiCard(modifier, padding = PaddingValues(20.dp), onClick = onClick) {
-        Text("净资产", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
+    YujiCard(modifier, padding = PaddingValues(20.dp), onClick = onClick, variant = CardVariant.Accent) {
+        Text("净资产", style = YujiType.tag, color = LocalYujiColors.current.TextMuted)
         Spacer(Modifier.height(8.dp))
-        CnyText(total, Amount.hero)
+        CnyText(total, Amount.hero.copy(brush = LocalYujiColors.current.Headline))
         if (liabilities.signum() > 0) {
             Spacer(Modifier.height(4.dp))
             Row {
@@ -455,7 +464,7 @@ private fun GoalCard(goal: BigDecimal?, total: BigDecimal, onClick: () -> Unit) 
                 Icon(Icons.Rounded.Flag, contentDescription = null, tint = LocalYujiColors.current.TextMuted, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
                 Text("设置一个资产目标", style = MaterialTheme.typography.bodyMedium, color = LocalYujiColors.current.TextMuted, modifier = Modifier.weight(1f))
-                Text("设置", style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.Mint)
+                Text("设置", style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.AccentText)
             }
         }
         return
@@ -466,14 +475,14 @@ private fun GoalCard(goal: BigDecimal?, total: BigDecimal, onClick: () -> Unit) 
     YujiCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("资产目标", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Text(Money.percent(total.max(BigDecimal.ZERO), goal), style = MaterialTheme.typography.titleSmall, color = LocalYujiColors.current.Mint)
+            Text(Money.percent(total.max(BigDecimal.ZERO), goal), style = MaterialTheme.typography.titleSmall, color = LocalYujiColors.current.AccentText)
         }
         Spacer(Modifier.height(10.dp))
         LinearProgressIndicator(
             progress = { animated },
-            modifier = Modifier.fillMaxWidth().height(8.dp),
-            color = LocalYujiColors.current.Mint,
-            trackColor = LocalYujiColors.current.CardHigh,
+            modifier = Modifier.fillMaxWidth().height(6.dp),
+            color = LocalYujiColors.current.Accent,
+            trackColor = LocalYujiColors.current.Muted,
             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
             gapSize = 0.dp,
             drawStopIndicator = {},
@@ -509,7 +518,7 @@ private fun flatten(groups: List<GroupValue>, collapsed: Set<Long>): List<HomeEn
         if (g.group.id in collapsed) emptyList() else g.accounts.map { HomeEntry.Item(it) }
 }
 
-private val CARD = 20.dp
+private val CARD = 16.dp
 
 /** Top of a group card; [closed] = no visible accounts below, so it rounds its bottom too. */
 @OptIn(ExperimentalFoundationApi::class)
@@ -529,7 +538,13 @@ private fun GroupHeader(
     var renaming by remember { mutableStateOf(false) }
     var renameText by remember(renaming) { mutableStateOf(group.group.name) }
 
-    Column(Modifier.padding(top = 12.dp).clip(shape).background(LocalYujiColors.current.Card)) {
+    val yc = LocalYujiColors.current
+    Column(
+        Modifier.padding(top = 12.dp)
+            .clip(shape)
+            .background(yc.Surface)
+            .segmentBorder(top = true, bottom = closed, radius = CARD, color = yc.Outline)
+    ) {
         Box {
             Row(
                 Modifier.fillMaxWidth()
@@ -602,7 +617,7 @@ private fun GroupHeader(
                     value = renameText,
                     onValueChange = { renameText = it },
                     singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
@@ -656,10 +671,12 @@ private fun AccountRow(
         enableDismissFromStartToEnd = !dragging,
         enableDismissFromEndToStart = !dragging,
         gesturesEnabled = !dragging,
-        backgroundContent = {
+        backgroundContent = bg@{
+            // Rows are translucent glass, so the action color is only drawn while swiping.
+            if (swipeState.dismissDirection == SwipeToDismissBoxValue.Settled) return@bg
             val isDelete = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
-            val bgColor = if (isDelete) LocalYujiColors.current.Coral.copy(alpha = 0.14f)
-                          else LocalYujiColors.current.Mint.copy(alpha = 0.14f)
+            val bgColor = if (isDelete) LocalYujiColors.current.Coral.copy(alpha = 0.16f)
+                          else LocalYujiColors.current.Accent.copy(alpha = 0.20f)
             Box(
                 Modifier.fillMaxSize().background(bgColor, shape),
                 contentAlignment = if (isDelete) Alignment.CenterStart else Alignment.CenterEnd,
@@ -669,19 +686,22 @@ private fun AccountRow(
                         tint = LocalYujiColors.current.Coral, modifier = Modifier.padding(start = 20.dp))
                 } else {
                     Icon(Icons.Rounded.EditNote, contentDescription = "更新余额",
-                        tint = LocalYujiColors.current.Mint, modifier = Modifier.padding(end = 20.dp))
+                        tint = LocalYujiColors.current.AccentText, modifier = Modifier.padding(end = 20.dp))
                 }
             }
         },
     ) {
         Surface(
             shape = shape,
-            color = if (dragging) LocalYujiColors.current.CardHigh else LocalYujiColors.current.Card,
+            color = if (dragging) LocalYujiColors.current.CardHigh else LocalYujiColors.current.Surface,
             shadowElevation = elevation,
-            modifier = Modifier.then(handle),
+            modifier = Modifier
+                .then(if (dragging) Modifier.border(1.dp, LocalYujiColors.current.OutlineStrong, shape)
+                      else Modifier.segmentBorder(top = false, bottom = last, radius = CARD, color = LocalYujiColors.current.Outline))
+                .then(handle),
         ) {
             Column {
-                if (!first && !dragging) HorizontalDivider(Modifier.padding(start = 68.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                if (!first && !dragging) HorizontalDivider(Modifier.padding(start = 68.dp), color = LocalYujiColors.current.Outline)
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -742,7 +762,7 @@ fun GoalDialog(current: BigDecimal?, onDismiss: () -> Unit, onSave: (BigDecimal?
                     placeholder = { Text("例如 1000000") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = MaterialTheme.shapes.medium,
                 )
             }
         },

@@ -57,3 +57,5 @@ keyPassword=yourPassword
 ## 许可
 
 MIT
+
+数字与英文字体使用 [Inter](https://github.com/rsms/inter)，浅色模式的大数字使用 [Calistoga](https://github.com/SorkinType/Calistoga)，均为 SIL OFL 1.1。应用内只打包拉丁字符子集，许可证见 `app/src/main/res/raw/`。

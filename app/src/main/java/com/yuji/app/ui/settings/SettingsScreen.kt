@@ -1,5 +1,10 @@
 package com.yuji.app.ui.settings
 
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
+import com.yuji.app.ui.theme.ThemeMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.CurrencyExchange
@@ -24,8 +28,6 @@ import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -34,7 +36,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,8 +57,11 @@ import com.yuji.app.ui.home.GoalDialog
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.nav.Routes
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.ThemeMode
-import com.yuji.app.ui.theme.YujiColors
+import com.yuji.app.ui.components.IconPlate
+import com.yuji.app.ui.components.PageTitle
+import com.yuji.app.ui.components.SectionLabel
+import com.yuji.app.ui.components.yujiSwitchColors
+import androidx.compose.foundation.shape.CircleShape
 
 @Composable
 fun SettingsScreen(nav: NavController) {
@@ -73,7 +77,7 @@ fun SettingsScreen(nav: NavController) {
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Text("设置", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 6.dp)) }
+        item { PageTitle("设置", Modifier.padding(vertical = 6.dp)) }
 
         item { GroupLabel("显示") }
         item {
@@ -81,7 +85,7 @@ fun SettingsScreen(nav: NavController) {
                 SettingRow(Icons.Rounded.VisibilityOff, "隐藏金额", "所有页面用 •••• 代替金额", trailing = {
                     Switch(
                         checked = settings.hideAmounts, onCheckedChange = c.settings::setHideAmounts,
-                        colors = SwitchDefaults.colors(checkedTrackColor = LocalYujiColors.current.Mint, checkedThumbColor = LocalYujiColors.current.Background),
+                        colors = yujiSwitchColors(),
                     )
                 })
                 Divider()
@@ -95,15 +99,13 @@ fun SettingsScreen(nav: NavController) {
                     }
                 })
                 Divider()
-                val (themeIcon, themeLabel) = when (settings.themeMode) {
-                    ThemeMode.DARK  -> Icons.Rounded.DarkMode  to "深色"
-                    ThemeMode.LIGHT -> Icons.Rounded.LightMode to "浅色"
-                }
-                SettingRow(themeIcon, "外观主题", themeLabel, onClick = {
-                    c.settings.setThemeMode(
-                        if (settings.themeMode == ThemeMode.DARK) ThemeMode.LIGHT else ThemeMode.DARK
-                    )
-                })
+                val light = settings.themeMode == ThemeMode.LIGHT
+                SettingRow(
+                    if (light) Icons.Rounded.LightMode else Icons.Rounded.DarkMode, "外观",
+                    if (light) "浅色" else "深色",
+                    onClick = { c.settings.setThemeMode(if (light) ThemeMode.DARK else ThemeMode.LIGHT) },
+                    trailing = { ThemeToggle(light) { c.settings.setThemeMode(if (it) ThemeMode.LIGHT else ThemeMode.DARK) } },
+                )
                 Divider()
                 SettingRow(
                     Icons.Rounded.Flag, "资产目标",
@@ -150,7 +152,7 @@ fun SettingsScreen(nav: NavController) {
 
 @Composable
 fun GroupLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.labelLarge, color = LocalYujiColors.current.TextMuted, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
+    SectionLabel(text, Modifier.padding(top = 12.dp))
 }
 
 @Composable
@@ -159,10 +161,10 @@ fun SettingsGroup(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Divider() = HorizontalDivider(Modifier.padding(start = 60.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+private fun Divider() = HorizontalDivider(Modifier.padding(start = 60.dp), color = LocalYujiColors.current.Outline)
 
 @Composable
-private fun Dot(color: Color) = Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(color))
+private fun Dot(color: Color) = Box(Modifier.size(10.dp).clip(CircleShape).background(color))
 
 @Composable
 fun SettingRow(
@@ -178,9 +180,7 @@ fun SettingRow(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(LocalYujiColors.current.CardHigh), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = LocalYujiColors.current.Mint, modifier = Modifier.size(18.dp))
-        }
+        IconPlate(icon)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
@@ -189,6 +189,29 @@ fun SettingRow(
         when {
             trailing != null -> trailing()
             onClick != null -> Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = LocalYujiColors.current.TextFaint)
+        }
+    }
+}
+
+/** Two-segment 深色 / 浅色 picker. */
+@Composable
+private fun ThemeToggle(light: Boolean, onChange: (Boolean) -> Unit) {
+    val c = LocalYujiColors.current
+    Row(
+        Modifier.clip(CircleShape).background(c.Muted).border(1.dp, c.Outline, CircleShape).padding(3.dp),
+    ) {
+        listOf(false to "深色", true to "浅色").forEach { (isLight, label) ->
+            val selected = light == isLight
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (selected) Color.White else c.TextMuted,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .then(if (selected) Modifier.background(Brush.horizontalGradient(listOf(c.Accent, c.AccentBright))) else Modifier)
+                    .clickable { onChange(isLight) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
         }
     }
 }

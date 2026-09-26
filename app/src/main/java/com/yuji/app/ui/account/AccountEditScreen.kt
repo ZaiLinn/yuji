@@ -1,5 +1,12 @@
 package com.yuji.app.ui.account
 
+import androidx.compose.foundation.border
+import com.yuji.app.ui.components.YujiChip
+import com.yuji.app.ui.components.bottomBarSurface
+import com.yuji.app.ui.components.inputWell
+import com.yuji.app.ui.components.yujiSwitchColors
+import com.yuji.app.ui.theme.YujiType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,8 +33,6 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -38,7 +42,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,7 +71,6 @@ import com.yuji.app.ui.components.YujiTopBar
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.theme.Amount
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -101,10 +103,10 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
     val valid = name.isNotBlank() && parsed != null && groups.any { it.id == groupId }
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = { YujiTopBar(if (existing == null) "新建账户" else "编辑账户", onBack = { nav.popBackStack() }) },
         bottomBar = {
-            Column(Modifier.background(LocalYujiColors.current.Background).navigationBarsPadding().imePadding().padding(16.dp)) {
+            Column(Modifier.bottomBarSurface().navigationBarsPadding().imePadding().padding(16.dp)) {
                 error?.let { Text(it, color = LocalYujiColors.current.Coral, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp)) }
                 PrimaryButton(
                     text = if (existing == null) "添加账户" else "保存",
@@ -137,9 +139,10 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
                     Box(Modifier.clickable { pickIcon = true }) {
                         AccountIcon(iconType, iconValue, name.ifBlank { "账" }, size = 56.dp)
                         Box(
-                            Modifier.align(Alignment.BottomEnd).size(20.dp).clip(CircleShape).background(LocalYujiColors.current.Mint),
+                            Modifier.align(Alignment.BottomEnd).size(20.dp).clip(CircleShape).background(LocalYujiColors.current.Accent)
+                                .border(1.5.dp, LocalYujiColors.current.Background, CircleShape),
                             contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Rounded.Edit, contentDescription = "更换图标", tint = LocalYujiColors.current.Background, modifier = Modifier.size(12.dp)) }
+                        ) { Icon(Icons.Rounded.Edit, contentDescription = "更换图标", tint = Color.White, modifier = Modifier.size(12.dp)) }
                     }
                     Spacer(Modifier.width(14.dp))
                     OutlinedTextField(
@@ -148,7 +151,7 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
                         label = { Text("账户名称") },
                         placeholder = { Text("如：支付宝、招商银行") },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = fieldColors(),
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         modifier = Modifier.weight(1f),
@@ -157,11 +160,11 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
             }
 
             YujiCard {
-                Text("当前余额", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
+                Text("当前余额", style = YujiType.tag, color = LocalYujiColors.current.TextMuted)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(
-                        Modifier.clip(RoundedCornerShape(12.dp)).background(LocalYujiColors.current.CardHigh)
+                        Modifier.inputWell()
                             .clickable { pickCurrency = true }.padding(horizontal = 12.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -176,7 +179,7 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
                         singleLine = true,
                         isError = balance.isNotEmpty() && parsed == null,
                         textStyle = Amount.large,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = fieldColors(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
@@ -190,24 +193,18 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
             }
 
             YujiCard {
-                Text("所属分组", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.TextMuted)
+                Text("所属分组", style = YujiType.tag, color = LocalYujiColors.current.TextMuted)
                 Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     groups.forEach { g ->
-                        FilterChip(
+                        YujiChip(
+                            g.name,
                             selected = g.id == groupId,
                             onClick = { groupId = g.id },
-                            label = { Text(g.name) },
-                            leadingIcon = if (g.id == groupId) ({ Icon(Icons.Rounded.Check, null, Modifier.size(16.dp)) }) else null,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = LocalYujiColors.current.Mint.copy(alpha = 0.16f),
-                                selectedLabelColor = LocalYujiColors.current.Mint,
-                                selectedLeadingIconColor = LocalYujiColors.current.Mint,
-                                containerColor = LocalYujiColors.current.CardHigh,
-                            ),
+                            leadingIcon = if (g.id == groupId) Icons.Rounded.Check else null,
                         )
                     }
-                    FilterChip(selected = false, onClick = { newGroup = true }, label = { Text("＋ 新分组") })
+                    YujiChip("＋ 新分组", selected = false, onClick = { newGroup = true })
                 }
             }
 
@@ -217,7 +214,7 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
                     onValueChange = { note = it },
                     label = { Text("备注（可选）") },
                     singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = fieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -229,7 +226,7 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
                     }
                     Switch(
                         checked = include, onCheckedChange = { include = it },
-                        colors = SwitchDefaults.colors(checkedTrackColor = LocalYujiColors.current.Mint, checkedThumbColor = LocalYujiColors.current.Background),
+                        colors = yujiSwitchColors(),
                     )
                 }
             }
@@ -255,12 +252,12 @@ fun AccountEditScreen(nav: NavController, id: Long?, presetGroup: Long?) {
 
 @Composable
 fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = LocalYujiColors.current.Mint,
-    unfocusedBorderColor = LocalYujiColors.current.Outline,
-    focusedContainerColor = LocalYujiColors.current.CardHigh,
-    unfocusedContainerColor = LocalYujiColors.current.CardHigh,
-    cursorColor = LocalYujiColors.current.Mint,
-    focusedLabelColor = LocalYujiColors.current.Mint,
+    focusedBorderColor = LocalYujiColors.current.Accent,
+    unfocusedBorderColor = LocalYujiColors.current.OutlineStrong,
+    focusedContainerColor = LocalYujiColors.current.Card,
+    unfocusedContainerColor = LocalYujiColors.current.Card,
+    cursorColor = LocalYujiColors.current.AccentText,
+    focusedLabelColor = LocalYujiColors.current.AccentText,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,7 +273,7 @@ fun CurrencySheet(selected: String, onDismiss: () -> Unit, onPick: (String) -> U
                         Text(cur.symbol, style = MaterialTheme.typography.titleSmall)
                     }
                 },
-                trailingContent = { if (cur.code == selected) Icon(Icons.Rounded.Check, null, tint = LocalYujiColors.current.Mint) },
+                trailingContent = { if (cur.code == selected) Icon(Icons.Rounded.Check, null, tint = LocalYujiColors.current.AccentText) },
                 colors = ListItemDefaults.colors(containerColor = LocalYujiColors.current.Card),
                 modifier = Modifier.clickable { onPick(cur.code); onDismiss() },
             )
@@ -295,7 +292,7 @@ fun NameDialog(title: String, initial: String, onDismiss: () -> Unit, onSave: (S
         text = {
             OutlinedTextField(
                 value = text, onValueChange = { text = it }, singleLine = true,
-                shape = RoundedCornerShape(14.dp), placeholder = { Text("名称") },
+                shape = MaterialTheme.shapes.medium, placeholder = { Text("名称") },
             )
         },
         confirmButton = {

@@ -1,6 +1,7 @@
 package com.yuji.app.ui.settings
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -43,7 +43,6 @@ import com.yuji.app.ui.components.ConfirmDialog
 import com.yuji.app.ui.components.YujiTopBar
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -70,7 +69,7 @@ fun GroupsScreen(nav: NavController) {
     }
 
     Scaffold(
-        containerColor = LocalYujiColors.current.Background,
+        containerColor = Color.Transparent,
         topBar = {
             YujiTopBar("分组管理", onBack = { nav.popBackStack() }) {
                 IconButton(onClick = { adding = true }) { Icon(Icons.Rounded.Add, contentDescription = "新分组") }
@@ -91,9 +90,10 @@ fun GroupsScreen(nav: NavController) {
                 ReorderableItem(reorder, key = g.id) { dragging ->
                     val count = portfolio.accounts.count { it.account.groupId == g.id }
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (dragging) LocalYujiColors.current.CardHigh else LocalYujiColors.current.Card,
-                        modifier = Modifier.shadow(if (dragging) 8.dp else 0.dp, RoundedCornerShape(16.dp)),
+                        shape = MaterialTheme.shapes.large,
+                        color = if (dragging) LocalYujiColors.current.CardHigh else LocalYujiColors.current.Surface,
+                        border = BorderStroke(1.dp, if (dragging) LocalYujiColors.current.OutlineStrong else LocalYujiColors.current.Outline),
+                        modifier = Modifier.shadow(if (dragging) 8.dp else 0.dp, MaterialTheme.shapes.large),
                     ) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

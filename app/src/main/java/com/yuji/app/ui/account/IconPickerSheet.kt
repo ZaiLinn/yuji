@@ -1,9 +1,13 @@
 package com.yuji.app.ui.account
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import com.yuji.app.ui.components.PrimaryButton
+import com.yuji.app.ui.components.SecondaryButton
+import com.yuji.app.ui.components.inputWell
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,7 +36,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
@@ -48,7 +50,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,7 +58,6 @@ import coil3.compose.AsyncImage
 import com.yuji.app.data.db.IconType
 import com.yuji.app.ui.nav.LocalContainer
 import com.yuji.app.ui.theme.LocalYujiColors
-import com.yuji.app.ui.theme.YujiColors
 import kotlinx.coroutines.launch
 
 private val EMOJIS = listOf(
@@ -128,16 +128,17 @@ fun IconPickerSheet(onDismiss: () -> Unit, onPicked: (type: String, value: Strin
                     ) {
                         items(EMOJIS) { e ->
                             Box(
-                                Modifier.aspectRatio(1f).clip(RoundedCornerShape(14.dp)).background(LocalYujiColors.current.CardHigh)
+                                Modifier.aspectRatio(1f).inputWell()
                                     .clickable { onPicked(IconType.EMOJI, e); onDismiss() },
                                 contentAlignment = Alignment.Center,
                             ) { Text(e, fontSize = 24.sp) }
                         }
                     }
-                    OutlinedButton(
+                    SecondaryButton(
+                        "使用默认图标（名称首字）",
                         onClick = { onPicked(IconType.NONE, ""); onDismiss() },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    ) { Text("使用默认图标（名称首字）") }
+                        modifier = Modifier.padding(vertical = 12.dp),
+                    )
                 }
                 1 -> Column(Modifier.padding(horizontal = 16.dp)) {
                     OutlinedTextField(
@@ -146,7 +147,7 @@ fun IconPickerSheet(onDismiss: () -> Unit, onPicked: (type: String, value: Strin
                         placeholder = { Text("英文名称，如 alipay、binance") },
                         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = MaterialTheme.shapes.medium,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { search(query) }),
                         modifier = Modifier.fillMaxWidth(),
@@ -164,7 +165,7 @@ fun IconPickerSheet(onDismiss: () -> Unit, onPicked: (type: String, value: Strin
                     }
                     error?.let { Text(it, color = LocalYujiColors.current.Amber, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 8.dp)) }
                     if (searching || saving) {
-                        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = LocalYujiColors.current.Mint) }
+                        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = LocalYujiColors.current.AccentText) }
                     }
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(5),
@@ -174,8 +175,10 @@ fun IconPickerSheet(onDismiss: () -> Unit, onPicked: (type: String, value: Strin
                         modifier = Modifier.weight(1f),
                     ) {
                         items(results, key = { it }) { id ->
+                            // Same dark plate the saved icon will sit on, so white glyphs stay visible.
                             Box(
-                                Modifier.aspectRatio(1f).clip(RoundedCornerShape(14.dp)).background(LocalYujiColors.current.CardHigh)
+                                Modifier.aspectRatio(1f).clip(MaterialTheme.shapes.medium)
+                                    .background(LocalYujiColors.current.InverseSurface)
                                     .clickable(enabled = !saving) {
                                         saving = true
                                         scope.launch {
@@ -202,14 +205,16 @@ fun IconPickerSheet(onDismiss: () -> Unit, onPicked: (type: String, value: Strin
                     Modifier.fillMaxWidth().padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, tint = LocalYujiColors.current.Mint, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, tint = LocalYujiColors.current.AccentText, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
                     Text("从相册选择一张图片，会自动裁成正方形并保存在本机。", color = LocalYujiColors.current.TextMuted, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(20.dp))
-                    OutlinedButton(
+                    PrimaryButton(
+                        if (saving) "处理中…" else "选择图片",
                         enabled = !saving,
                         onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                    ) { Text(if (saving) "处理中…" else "选择图片") }
+                        fillWidth = false,
+                    )
                     error?.let { Text(it, color = LocalYujiColors.current.Coral, modifier = Modifier.padding(top = 12.dp)) }
                 }
             }
