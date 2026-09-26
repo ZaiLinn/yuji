@@ -72,6 +72,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag }}
           name: 余记 v${{ steps.version.outputs.version }}
-          body: ${{ github.event.inputs.notes != '' && github.event.inputs.notes || '## 更新内容\n\n- UI 交互改进：FAB 滚动收缩、余额对话框自动聚焦全选、下拉刷新汇率\n- 账户行左滑快速更新余额\n- 分组长按菜单（重命名 / 删除）\n- 批量更新键盘 Next 自动滚动\n- 快照历史左滑直接删除' }}
+          body: |
+            ${{ github.event.inputs.notes != '' && github.event.inputs.notes || '## 更新内容\n\n- UI 交互改进：FAB 滚动收缩、余额对话框自动聚焦全选、下拉刷新汇率\n- 账户行左滑快速更新余额\n- 分组长按菜单（重命名/删除）\n- 批量更新键盘 Next 自动滚动\n- 快照历史左滑直接删除' }}
           files: app/build/outputs/apk/release/yuji-v${{ steps.version.outputs.version }}.apk
           token: ${{ secrets.GITHUB_TOKEN }}

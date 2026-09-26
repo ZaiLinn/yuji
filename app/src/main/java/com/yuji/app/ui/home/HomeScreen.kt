@@ -2,8 +2,10 @@ package com.yuji.app.ui.home
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.DriveFileRenameOutline
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Flag
@@ -35,6 +39,9 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Wallet
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,10 +50,15 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,9 +83,11 @@ import com.yuji.app.domain.Currency
 import com.yuji.app.domain.GroupValue
 import com.yuji.app.domain.Money
 import com.yuji.app.ui.Format
+import com.yuji.app.ui.account.BalanceDialog
 import com.yuji.app.ui.components.AccountIcon
 import com.yuji.app.ui.components.Banner
 import com.yuji.app.ui.components.ChartPoint
+import com.yuji.app.ui.components.ConfirmDialog
 import com.yuji.app.ui.components.CnyText
 import com.yuji.app.ui.components.DeltaChip
 import com.yuji.app.ui.components.EmptyState
@@ -96,6 +110,7 @@ import java.math.RoundingMode
 private const val DAY = 86_400_000L
 const val OVERDUE_DAYS = 7
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(nav: NavController) {
     val c = LocalContainer.current
@@ -109,6 +124,8 @@ fun HomeScreen(nav: NavController) {
     var refreshing by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var searching by remember { mutableStateOf(false) }
+    var quickUpdateId by remember { mutableStateOf<Long?>(null) }
+    var confirmDeleteAccountId by remember { mutableStateOf<Long?>(null) }
     val haptic = LocalHapticFeedback.current
 
     // Group headers and account rows as one flat list, so any account can be dragged
@@ -118,6 +135,7 @@ fun HomeScreen(nav: NavController) {
     LaunchedEffect(portfolio.groups, collapsed) { if (!dragging) entries = flatten(portfolio.groups, collapsed) }
 
     val listState = rememberLazyListState()
+    val extended by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     val reorder = rememberReorderableLazyListState(listState) { from, to ->
         val i = entries.indexOfFirst { it.key == from.key }
         val j = entries.indexOfFirst { it.key == to.key }
@@ -145,7 +163,17 @@ fun HomeScreen(nav: NavController) {
     val total = portfolio.total
     val overdue = portfolio.accounts.count { Format.ageDays(it.account.updatedAt, now) >= OVERDUE_DAYS }
 
-    Box(Modifier.fillMaxSize()) {
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            if (!refreshing) scope.launch {
+                refreshing = true
+                c.repository.refreshRates()
+                refreshing = false
+            }
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) {
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(
@@ -267,6 +295,8 @@ fun HomeScreen(nav: NavController) {
                         AccountRow(
                             v = v, now = now, first = false, last = false, dragging = false,
                             onOpen = { nav.navigate(Routes.account(it)) },
+                            onQuickUpdate = { quickUpdateId = it },
+                            onDelete = { confirmDeleteAccountId = it },
                             handle = Modifier,
                         )
                     }
@@ -289,6 +319,7 @@ fun HomeScreen(nav: NavController) {
                                 },
                                 onAdd = { nav.navigate(Routes.edit(group = e.group.group.id)) },
                                 onDelete = { scope.launch { c.repository.deleteGroup(e.group.group.id) } },
+                                onRename = { name -> scope.launch { c.repository.renameGroup(e.group.group.id, name) } },
                             )
                             is HomeEntry.Item -> AccountRow(
                                 v = e.value,
@@ -297,6 +328,8 @@ fun HomeScreen(nav: NavController) {
                                 last = lastInGroup,
                                 dragging = isDragging,
                                 onOpen = { nav.navigate(Routes.account(it)) },
+                                onQuickUpdate = { quickUpdateId = it },
+                                onDelete = { confirmDeleteAccountId = it },
                                 handle = Modifier.longPressDraggableHandle(
                                     onDragStarted = {
                                         dragging = true
@@ -325,6 +358,7 @@ fun HomeScreen(nav: NavController) {
 
         if (portfolio.accounts.isNotEmpty()) {
             ExtendedFloatingActionButton(
+                expanded = extended,
                 onClick = { nav.navigate(Routes.update()) },
                 icon = { Icon(Icons.Rounded.EditNote, contentDescription = null) },
                 text = { Text("更新余额") },
@@ -337,6 +371,27 @@ fun HomeScreen(nav: NavController) {
 
     if (editGoal) {
         GoalDialog(settings.goal, onDismiss = { editGoal = false }, onSave = { c.settings.setGoal(it) })
+    }
+    quickUpdateId?.let { id ->
+        portfolio.account(id)?.let { av ->
+            BalanceDialog(
+                initial = av.account.balance,
+                currency = av.account.currency,
+                onDismiss = { quickUpdateId = null },
+                onSave = { value -> scope.launch { c.repository.confirmBalances(mapOf(id to value)) } },
+            )
+        }
+    }
+    confirmDeleteAccountId?.let { id ->
+        val name = portfolio.account(id)?.account?.name ?: "该账户"
+        ConfirmDialog(
+            title = "删除「$name」？",
+            message = "账户和它的余额历史会被删除，已有的资产快照不受影响。",
+            confirm = "删除",
+            destructive = true,
+            onConfirm = { scope.launch { c.repository.deleteAccount(id) } },
+            onDismiss = { confirmDeleteAccountId = null },
+        )
     }
 }
 
@@ -458,24 +513,64 @@ private fun flatten(groups: List<GroupValue>, collapsed: Set<Long>): List<HomeEn
 private val CARD = 20.dp
 
 /** Top of a group card; [closed] = no visible accounts below, so it rounds its bottom too. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GroupHeader(group: GroupValue, collapsed: Boolean, closed: Boolean, onToggle: () -> Unit, onAdd: () -> Unit, onDelete: () -> Unit = {}) {
+private fun GroupHeader(
+    group: GroupValue,
+    collapsed: Boolean,
+    closed: Boolean,
+    onToggle: () -> Unit,
+    onAdd: () -> Unit,
+    onDelete: () -> Unit = {},
+    onRename: (String) -> Unit = {},
+) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, label = "chevron")
     val shape = if (closed) RoundedCornerShape(CARD) else RoundedCornerShape(topStart = CARD, topEnd = CARD)
+    var showMenu by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+    var renameText by remember(renaming) { mutableStateOf(group.group.name) }
+
     Column(Modifier.padding(top = 12.dp).clip(shape).background(LocalYujiColors.current.Card)) {
-        Row(
-            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(group.group.name, style = MaterialTheme.typography.titleSmall)
-                Text("${group.accounts.size} 个账户", style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextFaint)
+        Box {
+            Row(
+                Modifier.fillMaxWidth()
+                    .combinedClickable(onClick = onToggle, onLongClick = { showMenu = true })
+                    .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(group.group.name, style = MaterialTheme.typography.titleSmall)
+                    Text("${group.accounts.size} 个账户", style = MaterialTheme.typography.labelSmall, color = LocalYujiColors.current.TextFaint)
+                }
+                CnyText(group.totalCny, MaterialTheme.typography.titleSmall, color = LocalYujiColors.current.TextMuted)
+                Icon(
+                    Icons.Rounded.ExpandMore, contentDescription = null, tint = LocalYujiColors.current.TextFaint,
+                    modifier = Modifier.padding(start = 4.dp).rotate(rotation),
+                )
             }
-            CnyText(group.totalCny, MaterialTheme.typography.titleSmall, color = LocalYujiColors.current.TextMuted)
-            Icon(
-                Icons.Rounded.ExpandMore, contentDescription = null, tint = LocalYujiColors.current.TextFaint,
-                modifier = Modifier.padding(start = 4.dp).rotate(rotation),
-            )
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text("重命名") },
+                    onClick = { showMenu = false; renaming = true },
+                    leadingIcon = { Icon(Icons.Rounded.DriveFileRenameOutline, contentDescription = null) },
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "删除分组",
+                            color = if (group.accounts.isEmpty()) LocalYujiColors.current.Coral else LocalYujiColors.current.TextFaint,
+                        )
+                    },
+                    onClick = { showMenu = false; onDelete() },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.DeleteOutline, contentDescription = null,
+                            tint = if (group.accounts.isEmpty()) LocalYujiColors.current.Coral else LocalYujiColors.current.TextFaint,
+                        )
+                    },
+                    enabled = group.accounts.isEmpty(),
+                )
+            }
         }
         if (closed && !collapsed) {
             if (group.accounts.isEmpty()) {
@@ -497,6 +592,32 @@ private fun GroupHeader(group: GroupValue, collapsed: Boolean, closed: Boolean, 
             }
         }
     }
+
+    if (renaming) {
+        AlertDialog(
+            onDismissRequest = { renaming = false },
+            containerColor = LocalYujiColors.current.CardHigh,
+            title = { Text("重命名分组") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = renameText.isNotBlank() && renameText != group.group.name,
+                    onClick = { onRename(renameText.trim()); renaming = false },
+                ) { Text("保存") }
+            },
+            dismissButton = {
+                TextButton(onClick = { renaming = false }) { Text("取消", color = LocalYujiColors.current.TextMuted) }
+            },
+        )
+    }
 }
 
 @Composable
@@ -507,6 +628,8 @@ private fun AccountRow(
     last: Boolean,
     dragging: Boolean,
     onOpen: (Long) -> Unit,
+    onQuickUpdate: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
     handle: Modifier,
 ) {
     val a = v.account
@@ -517,48 +640,84 @@ private fun AccountRow(
         last -> RoundedCornerShape(bottomStart = CARD, bottomEnd = CARD)
         else -> RectangleShape
     }
-    Surface(
-        shape = shape,
-        color = if (dragging) LocalYujiColors.current.CardHigh else LocalYujiColors.current.Card,
-        shadowElevation = elevation,
-        modifier = Modifier.then(handle),
-    ) {
-        Column {
-            if (!first && !dragging) HorizontalDivider(Modifier.padding(start = 68.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpen(a.id) }
-                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = if (last) 16.dp else 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+
+    val swipeState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> onQuickUpdate(a.id)
+                SwipeToDismissBoxValue.StartToEnd -> onDelete(a.id)
+                else -> Unit
+            }
+            false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = swipeState,
+        enableDismissFromStartToEnd = !dragging,
+        enableDismissFromEndToStart = !dragging,
+        gesturesEnabled = !dragging,
+        backgroundContent = {
+            val isDelete = swipeState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val bgColor = if (isDelete) LocalYujiColors.current.Coral.copy(alpha = 0.14f)
+                          else LocalYujiColors.current.Mint.copy(alpha = 0.14f)
+            Box(
+                Modifier.fillMaxSize().background(bgColor, shape),
+                contentAlignment = if (isDelete) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
-                AccountIcon(a.iconType, a.iconValue, a.name)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        a.name, style = MaterialTheme.typography.bodyLarge,
-                        color = if (a.includeInTotal) LocalYujiColors.current.Text else LocalYujiColors.current.TextMuted,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                    val sub = buildList {
-                        if (a.note.isNotBlank()) add(a.note)
-                        add(Format.age(a.updatedAt, now) + "更新")
-                        if (!a.includeInTotal) add("不计入")
-                    }.joinToString(" · ")
-                    Text(
-                        sub, style = MaterialTheme.typography.labelSmall,
-                        color = if (age >= OVERDUE_DAYS) LocalYujiColors.current.Amber else LocalYujiColors.current.TextFaint,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
+                if (isDelete) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = "删除账户",
+                        tint = LocalYujiColors.current.Coral, modifier = Modifier.padding(start = 20.dp))
+                } else {
+                    Icon(Icons.Rounded.EditNote, contentDescription = "更新余额",
+                        tint = LocalYujiColors.current.Mint, modifier = Modifier.padding(end = 20.dp))
                 }
-                Spacer(Modifier.width(8.dp))
-                Column(horizontalAlignment = Alignment.End) {
-                    if (v.valueCny != null) {
-                        CnyText(v.valueCny, Amount.row, color = if (a.includeInTotal) LocalYujiColors.current.Text else LocalYujiColors.current.TextMuted)
-                    } else {
-                        Text("汇率未就绪", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.Amber)
+            }
+        },
+    ) {
+        Surface(
+            shape = shape,
+            color = if (dragging) LocalYujiColors.current.CardHigh else LocalYujiColors.current.Card,
+            shadowElevation = elevation,
+            modifier = Modifier.then(handle),
+        ) {
+            Column {
+                if (!first && !dragging) HorizontalDivider(Modifier.padding(start = 68.dp), color = LocalYujiColors.current.Outline.copy(alpha = 0.5f))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpen(a.id) }
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = if (last) 16.dp else 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AccountIcon(a.iconType, a.iconValue, a.name)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            a.name, style = MaterialTheme.typography.bodyLarge,
+                            color = if (a.includeInTotal) LocalYujiColors.current.Text else LocalYujiColors.current.TextMuted,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                        val sub = buildList {
+                            if (a.note.isNotBlank()) add(a.note)
+                            add(Format.age(a.updatedAt, now) + "更新")
+                            if (!a.includeInTotal) add("不计入")
+                        }.joinToString(" · ")
+                        Text(
+                            sub, style = MaterialTheme.typography.labelSmall,
+                            color = if (age >= OVERDUE_DAYS) LocalYujiColors.current.Amber else LocalYujiColors.current.TextFaint,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    if (a.currency != Currency.BASE) NativeAmountText(a.balance, a.currency, Amount.small, color = LocalYujiColors.current.TextFaint)
+                    Spacer(Modifier.width(8.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (v.valueCny != null) {
+                            CnyText(v.valueCny, Amount.row, color = if (a.includeInTotal) LocalYujiColors.current.Text else LocalYujiColors.current.TextMuted)
+                        } else {
+                            Text("汇率未就绪", style = MaterialTheme.typography.labelMedium, color = LocalYujiColors.current.Amber)
+                        }
+                        if (a.currency != Currency.BASE) NativeAmountText(a.balance, a.currency, Amount.small, color = LocalYujiColors.current.TextFaint)
+                    }
                 }
             }
         }
